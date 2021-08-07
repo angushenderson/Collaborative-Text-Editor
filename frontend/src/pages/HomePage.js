@@ -1,12 +1,9 @@
-import { useState } from 'react';
-import { Editor, EditorState } from 'draft-js';
-import 'draft-js/dist/Draft.css';
-
+import { useState, useEffect } from 'react';
+import { validate } from 'email-validator';
+import { HiShieldCheck } from 'react-icons/hi';
+import Button from '../components/input/button';
+import TextInput from '../components/input/text_input';
 
 export default function HomePage(props) {
-  const [editorState, setEditorState] = useState(
-    () => EditorState.createEmpty(),
-  );
-
-  return <Editor editorState={editorState} onChange={setEditorState} />;
+  return <h1>Home page</h1>
 }

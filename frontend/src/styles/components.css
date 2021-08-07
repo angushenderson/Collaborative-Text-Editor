@@ -1,0 +1,189 @@
+:root {
+  /* Primary colors 1 and 2 used in conjunction with each other to form primary gradient */
+  --primary-color-1: #b616db;
+  --primary-color-2: #d528a6;
+  /* Primary shadow to be used for shadows of boxes surrounding primary gradient */
+  --primary-color-shadow: #c31ec4;
+  --input-box-background: #171717;
+  --input-border-inactive: #1c1c1c;
+  --success-green: #4bca81;
+}
+
+/* Base styles */
+h1 {
+  font-size: 36px;
+}
+
+/* Disable autofill background color in input boxes in chrome */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px var(--input-box-background) inset !important;
+}
+
+/*Change text in autofill text box*/
+input:-webkit-autofill {
+  -webkit-text-fill-color: white !important;
+}
+
+/* Gradient button */
+.btn-grad {
+  background-image: linear-gradient(
+    to right,
+    var(--primary-color-1) 0%,
+    var(--primary-color-2) 51%,
+    var(--primary-color-1) 100%
+  );
+}
+
+.btn-grad {
+  margin: 20px 0;
+  padding: 18px 45px;
+  text-align: center;
+  text-transform: uppercase;
+  transition: 0.5s;
+  background-size: 200% auto;
+  color: white;
+  border-radius: 15px;
+  border-width: 0;
+  box-shadow: 0 0 15px var(--primary-color-shadow);
+  display: block;
+  font-weight: bold;
+  width: 100%;
+}
+
+.btn-grad:hover {
+  background-position: right center; /* change the direction of the change here */
+  color: #fff;
+  text-decoration: none;
+  border-width: 0;
+  box-shadow: 0 0 30px var(--primary-color-shadow);
+}
+
+.button-container {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+/* Text field */
+
+.text-input {
+  margin: 20px 0;
+  margin-top: 35px;
+  padding: 15px 35px;
+  background-color: var(--input-box-background);
+  color: #eee;
+  font-size: 16px;
+  box-sizing: border-box;
+  border: 2px solid var(--input-border-inactive);
+  transition: 0.5s;
+  border-radius: 15px;
+  width: 100%;
+}
+
+.text-input:focus {
+  box-sizing: border-box;
+  outline: none;
+  border: 2px solid var(--primary-color-shadow);
+}
+
+.text-input-ERROR {
+  animation: shake 0.75s;
+}
+
+.label-text {
+  line-height: 14px;
+  pointer-events: none;
+  font-size: 16px;
+}
+
+.label-container {
+  position: relative;
+  left: 20px;
+  top: -106px;
+}
+
+.trailing-icon-container {
+  margin: 0;
+  padding: 0;
+  float: right;
+  position: relative;
+  top: -80px;
+  right: 15px;
+}
+
+.input-success-shadow {
+  box-shadow: 0 0 15px var(--primary-color-shadow);
+}
+
+/* Form container */
+.form-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 100%;
+  max-width: 350px;
+  margin: 0 auto;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  -webkit-transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%);
+}
+
+.input-field-container {
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Random circles to display on page */
+.gradient-circle {
+  position: absolute;
+  background: linear-gradient(
+    45deg,
+    var(--primary-color-1),
+    var(--primary-color-2)
+  );
+  border-radius: 50%;
+  width: 150px;
+  height: 150px;
+}
+
+/* Shake animation */
+@keyframes shake {
+  0% {
+    transform: translate(1px, 1px) rotate(0deg);
+  }
+  10% {
+    transform: translate(-1px, -2px) rotate(-1deg);
+  }
+  20% {
+    transform: translate(-3px, 0px) rotate(1deg);
+  }
+  30% {
+    transform: translate(3px, 2px) rotate(0deg);
+  }
+  40% {
+    transform: translate(1px, -1px) rotate(1deg);
+  }
+  50% {
+    transform: translate(-1px, 2px) rotate(-1deg);
+  }
+  60% {
+    transform: translate(-3px, 1px) rotate(0deg);
+  }
+  70% {
+    transform: translate(3px, 1px) rotate(-1deg);
+  }
+  80% {
+    transform: translate(-1px, -1px) rotate(1deg);
+  }
+  90% {
+    transform: translate(1px, 2px) rotate(0deg);
+  }
+  100% {
+    transform: translate(1px, -2px) rotate(-1deg);
+  }
+}

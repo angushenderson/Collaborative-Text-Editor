@@ -1,5 +1,5 @@
-from rest_framework.serializers import ModelSerializer
 from django.conf import settings
+from rest_framework.serializers import ModelSerializer
 from api.models import Document, DocumentCollaborator
 
 
@@ -27,10 +27,3 @@ class DocumentCollaboratorSerializer(ModelSerializer):
     class Meta:
         model = DocumentCollaborator
         fields = '__all__'
-
-
-class UserSerializer(ModelSerializer):
-    """ Serializer class for User model """
-    class Meta:
-        model = settings.AUTH_USER_MODEL
-        fields = ('username', 'email')

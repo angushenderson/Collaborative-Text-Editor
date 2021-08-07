@@ -4,6 +4,16 @@
 
 # database
 server/db.sqlite3
+
+# python .venv
+server/.venv
+
+# django migrations
+**/migrations
+
+# pycache
+**/__pycache__
+
  
 
 ##############
