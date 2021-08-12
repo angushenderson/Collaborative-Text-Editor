@@ -62,6 +62,7 @@ input:-webkit-autofill {
 }
 
 .button-container {
+  width: 100%;
   flex: 1;
   display: flex;
   justify-content: center;
@@ -186,4 +187,24 @@ input:-webkit-autofill {
   100% {
     transform: translate(1px, -2px) rotate(-1deg);
   }
+}
+
+/* Profile image uploader */
+.image-overlay {
+  position: absolute;
+  bottom: 0;
+  background: rgb(0, 0, 0);
+  background: rgba(0, 0, 0, 0.5); /* Black see-through */
+  color: #f1f1f1;
+  width: 100%;
+  transition: 0.5s ease;
+  opacity: 0;
+  color: white;
+  font-size: 20px;
+  padding: 20px;
+  text-align: center;
+}
+
+.upload-image:hover .overlay {
+  opacity: 1;
 }

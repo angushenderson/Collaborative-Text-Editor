@@ -4,6 +4,7 @@ from authentication.views import *
 
 
 urlpatterns = [
+    path('my-account/', UserView.as_view(), name='my_account'),
     path('register/', RegisterUserView.as_view(), name='create_user'),
     path('validate-password/', PasswordStrengthValidatorView.as_view(),
          name='password_strength_validator'),

@@ -1,31 +1,24 @@
 from django.core import exceptions
 from rest_framework import status
 from rest_framework.views import APIView
-from rest_framework.generics import CreateAPIView
+from rest_framework.generics import CreateAPIView, RetrieveUpdateDestroyAPIView
 from rest_framework.request import Request
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from authentication.models import User
-from authentication.serializers import RegisterUserSerializer
+from authentication.serializers import RegisterUserSerializer, UserSerializer
 from authentication.utils import is_password_valid
 
 
 class RegisterUserView(CreateAPIView):
     """
-    API view for creating new users
+    API view for creating new users.
+    All token generation is handled in `RegisterUserSerializer`
     """
     queryset = User.objects.all()
     permission_classes = (AllowAny,)
     serializer_class = RegisterUserSerializer
-
-    def create(self, request, *args, **kwargs) -> Response:
-        """ Create a new user view """
-        response: Response = super().create(request, *args, **kwargs)
-        # Generate a new JWT for the new user
-        refresh = RefreshToken.for_user(self.request.user)
-        response.set_cookie('token', refresh, httponly=True)
-        return response
 
 
 class PasswordStrengthValidatorView(APIView):
@@ -59,7 +52,7 @@ class UniqueUsernameValidatorView(APIView):
         if username:
             try:
                 # Try to find username in database
-                user: User = User.objects.get(username=username)
+                User.objects.get(username=username)
                 # User exists, therefore username already in user and invalid
                 response_data['valid'] = False
             except exceptions.ObjectDoesNotExist:
@@ -67,3 +60,15 @@ class UniqueUsernameValidatorView(APIView):
                 response_data['valid'] = True
 
         return Response(response_data)
+
+
+class UserView(RetrieveUpdateDestroyAPIView):
+    """ View to allow user to modify their account """
+    serializer_class = UserSerializer
+    permission_classes = (IsAuthenticated,)
+
+    def get_object(self) -> User:
+        """
+        Returns the currently authenticated user object for a given request.
+        """
+        return self.request.user

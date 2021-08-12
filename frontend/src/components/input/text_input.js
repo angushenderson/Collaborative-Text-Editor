@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import '../../styles/components.css';
 
 // Function for themed text input

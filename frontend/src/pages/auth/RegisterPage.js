@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
-import { validate } from 'email-validator';
+import { useState, useEffect, useContext } from 'react';
 import { HiShieldCheck } from 'react-icons/hi';
-import Button from '../components/input/button';
-import TextInput from '../components/input/text_input';
+import Button from '../../components/input/button';
+import TextInput from '../../components/input/text_input';
+import { userContext } from '../../userContext';
 
 export default function RegisterPage(props) {
   const [username, setUsername] = useState('');
@@ -12,6 +12,10 @@ export default function RegisterPage(props) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [inputErrors, setInputErrors] = useState({'username': false, 'password': false, 'confirm_password': false});
 
+  // User context
+  const { user, setUser } = useContext(userContext);
+
+  // Validate that username is valid
   useEffect(() => {
     if (username !== '') {
       fetch(`api/auth/validate-username/${username}`)
@@ -25,6 +29,7 @@ export default function RegisterPage(props) {
     }
   }, [username]);
 
+  // Validate that password is valid
   useEffect(() => {
     if (password !== '') {
       fetch('api/auth/validate-password/', {
@@ -53,6 +58,7 @@ export default function RegisterPage(props) {
     });
   }
 
+  // Handle form submition
   const handleSubmit = () => {
     if (password === confirmPassword && password !== '' && isPasswordStrongEnough && isUsernameUnique) {
       fetch('api/auth/register/', {
@@ -63,11 +69,19 @@ export default function RegisterPage(props) {
         },
         body: JSON.stringify({'username': username, 'password': password})
       }).then(response => {
-        if (response.ok) {
-          
+        // Signup valid, proceed to next phase
+        if (response.status === 201) {
+          return response.json();
         } else {
           detectErrors();
         }
+      }).then(data => {
+        // Set user context and proceed to next phase of signup
+        setUser(data);
+        // Store access and refresh tokens in local storage
+        localStorage.setItem('access', data.Authorization.access);
+        localStorage.setItem('refresh', data.Authorization.refresh);
+        props.nextSignupPhase();
       })
     } else {
       detectErrors();
