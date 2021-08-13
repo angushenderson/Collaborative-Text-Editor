@@ -39,7 +39,6 @@ export default function SetProfilePhotoPage(props) {
         body: formData,
       }).then(response => response.json())
       .then(data => {
-        console.log(data);
         setUser({...user, profile_picture: data['profile_picture']});
       });
     });

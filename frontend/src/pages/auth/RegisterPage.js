@@ -58,9 +58,18 @@ export default function RegisterPage(props) {
     });
   }
 
+  const resetErrors = () => {
+    setInputErrors({
+      'username': false,
+      'password': false,
+      'confirm_password': false,
+    })
+  }
+
   // Handle form submition
   const handleSubmit = () => {
     if (password === confirmPassword && password !== '' && isPasswordStrongEnough && isUsernameUnique) {
+      resetErrors();
       fetch('api/auth/register/', {
         method: 'POST',
         headers: {
