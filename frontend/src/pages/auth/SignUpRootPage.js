@@ -1,20 +1,14 @@
-import { useState } from 'react';
-import RegisterPage from './RegisterPage'; 
+import RegisterPage from './RegisterPage';
 import SetProfilePhotoPage from './SetProfilePhotoPage';
 
-// Component to handle entire signup flow
-export default function SignUpRootPage(props) {
-  const [currentSignupPhase, setCurrentSignupPhase] = useState(0);
+export default function SignUpRootPage (props) {
+  // Root page to control flow through signup
+  // signupPhase props refers to which page to show, fetched from signup_phase attribute
+  //    in userContext. Should be 0 if that key doesn't exist. Last page in signup flow will
+  //    remove this field to denote that flow has been completed.
 
-  const nextSignupPhase = () => {
-    setCurrentSignupPhase(currentSignupPhase + 1);
-  }
-
-  const signup_phases = {
-    0: <RegisterPage nextSignupPhase={nextSignupPhase} />,
-    1: <SetProfilePhotoPage nextSignupPhase={nextSignupPhase} />
-  };
-
-  return signup_phases[currentSignupPhase]; 
-  // return signup_phases[1];
+  return [
+    <RegisterPage />,
+    <SetProfilePhotoPage />,
+  ][props.signupPhase];
 }

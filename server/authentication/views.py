@@ -5,10 +5,17 @@ from rest_framework.generics import CreateAPIView, RetrieveUpdateDestroyAPIView
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenObtainPairView
 from authentication.models import User
-from authentication.serializers import RegisterUserSerializer, UserSerializer
+from authentication.serializers import CustomTokenObtainPairSerializer, RegisterUserSerializer, UserSerializer
 from authentication.utils import is_password_valid
+
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    """
+    Token claim view for tokens with additional data
+    """
+    serializer_class = CustomTokenObtainPairSerializer
 
 
 class RegisterUserView(CreateAPIView):

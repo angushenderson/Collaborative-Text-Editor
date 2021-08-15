@@ -7,7 +7,7 @@ export default function button({
   primary = false,
 }) {
   return <div className='button-container'>
-    <button className='btn-grad' type={type} onClick={onClick}>
+    <button className={primary ? 'btn-grad-primary': 'btn-secondary'} type={type} onClick={onClick}>
       {text}
     </button>
   </div>;

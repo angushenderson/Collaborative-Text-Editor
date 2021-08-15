@@ -1,13 +1,16 @@
 import { useState } from 'react';
-import { BrowserRouter, Route, Switch } from 'react-router-dom';
-import SignUpRootPage from './pages/auth/SignUpRootPage';
-import { isUserAuthenticated } from './utils/auth';
+import { Route, Switch, Redirect, useHistory } from 'react-router-dom';
+import { extractProfileFromJWT, isUserAuthenticated } from './utils/auth';
 import { userContext } from './userContext';
 import LoginPage from './pages/auth/LoginPage';
+import HomePage from './pages/HomePage';
+import baseRequest from './utils/baseRequest';
+import SignUpRootPage from './pages/auth/SignUpRootPage';
 
 function App() {
   // User is initially an empty dictionary
   const [user, setUser] = useState({});
+  let history = useHistory();
 
   if (!isUserAuthenticated(user)) {
     // Fetch access and refresh tokens from local storage
@@ -15,12 +18,32 @@ function App() {
     const refresh = localStorage.getItem('refresh');
 
     if (refresh !== null && access !== null) {
-      user['Authorization'] = {
-        'access': access,
-        'refresh': refresh,
-      };
+      // Token's exist - extract user data from them
+      extractProfileFromJWT(user, setUser, access, refresh);
     }
   }
+
+  // Obsolete function, keeping as an example of using baseRequest and token auth for future requests
+  // useEffect(() => {
+  //   // Fetch user account info
+  //   if (isUserAuthenticated(user)) {
+  //     baseRequest(user, setUser, history, () => {
+  //       fetch('/api/auth/my-account/', {
+  //         'method': 'GET',
+  //         'headers': {
+  //           'Authorization': `Bearer ${user.Authorization.access}`,
+  //         }
+  //       }).then((response) => {
+  //         return response.data;
+  //       }).then((data) => {
+  //         setUser({...user, username: data.username, profile_picture: data.profile_picture});
+  //         setAppInitComplete(true);
+  //       });
+  //     })
+  //   } else {
+  //     setAppInitComplete(true);
+  //   }
+  // });
 
   return (
     // Context is { user, setUser }, use this syntax for unpacking
@@ -28,27 +51,23 @@ function App() {
       user,
       setUser,
     }}>
-      <BrowserRouter>
-        <Switch>
-          <Route path='/login' render={(props) => {
-            if (!isUserAuthenticated(user)) {
-              return <LoginPage />
-            } else {
-              return <div>
-                <h1>Welcome {user.username}</h1>
-                <img src={user.profile_picture} alt='Profile picture' />
-              </div>;
-            }
-          }} />
-          <Route path='/signup' render={(props) => {
-            if (!isUserAuthenticated(user)) {
-              return <SignUpRootPage />
-            } else {
-              return <h1>Welcome {user.username}</h1>
-            }
-          }} />
-        </Switch>
-      </BrowserRouter>
+      <Switch>
+        <Route path='/login' render={(props) => {
+          if (!isUserAuthenticated(user)) {
+            return <LoginPage />
+          } else {
+            return <Redirect to='/' />;
+          }
+        }} />
+        <Route path='/signup' render={(props) => {
+          if (!isUserAuthenticated(user) || user.hasOwnProperty('signup_phase')) {
+            return <SignUpRootPage signupPhase={!user.hasOwnProperty('signup_phase') ? 0 : user.signup_phase} />;
+          } else {
+            return <Redirect to='/' />;
+          }
+        }} />
+        <Route path='' component={HomePage} exact />
+      </Switch>
     </userContext.Provider>
   );
 }

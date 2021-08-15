@@ -1,4 +1,5 @@
 import { useRef, useState, useContext } from 'react';
+import { useHistory } from 'react-router-dom';
 import Button from '../../components/input/button';
 import baseRequest from '../../utils/baseRequest';
 import { userContext } from '../../userContext';
@@ -8,6 +9,8 @@ export default function SetProfilePhotoPage(props) {
   const uploadedImage = useRef(null);
   const imageUploader = useRef(null);
   const [image, setImage] = useState(null);
+
+  const history = useHistory();
 
   const { user, setUser } = useContext(userContext);
 
@@ -28,20 +31,26 @@ export default function SetProfilePhotoPage(props) {
   };
 
   const submitForm = () => {
-    // Send put request with image
-    let formData = new FormData();
-    formData.append('profile_picture', image);
-    
-    baseRequest(user, setUser, () => {
-      fetch('/api/auth/my-account/', {
-        method: 'PUT',
-        headers: {'Authorization': `Bearer ${user.Authorization.access}`},
-        body: formData,
-      }).then(response => response.json())
-      .then(data => {
-        setUser({...user, profile_picture: data['profile_picture']});
+    // Only bother submitting the form if the image has actually changed
+    if (image !== null) {
+      // Send put request with image
+      let formData = new FormData();
+      formData.append('profile_picture', image);
+      
+      baseRequest(user, setUser, history, () => {
+        fetch('/api/auth/my-account/', {
+          method: 'PUT',
+          headers: {'Authorization': `Bearer ${user.Authorization.access}`},
+          body: formData,
+        }).then(response => response.json())
+        .then(data => {
+          // End signup flow
+          delete user['signup_phase'];
+          setUser({...user, profile_picture: data['profile_picture']});
+          history.push('/');
+        });
       });
-    });
+    }
   };
    
   return <div className='form-container' style={{'maxWidth': '450px'}}>
@@ -89,6 +98,6 @@ export default function SetProfilePhotoPage(props) {
         <div className='image-overlay'>Upload image!</div>
       </div>
     </div>
-    <Button text={uploadedImage === null ? 'Skip' : 'Complete setup'} onClick={submitForm}/>
+    <Button primary text={image === null ? 'Skip' : 'Complete setup'} onClick={submitForm}/>
   </div>;
 }

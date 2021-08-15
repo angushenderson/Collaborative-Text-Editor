@@ -3,7 +3,24 @@ from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
 from rest_framework.validators import UniqueValidator
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from authentication.models import User
+
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    """
+    Serializer class to add additional user data to token pairs
+    """
+
+    @classmethod
+    def get_token(cls, user: User):
+        token = super().get_token(user)
+
+        # Custom token claims
+        token['username'] = user.username
+        token['profile_picture'] = user.profile_picture.url
+
+        return token
 
 
 class RegisterUserSerializer(ModelSerializer):
@@ -32,11 +49,12 @@ class RegisterUserSerializer(ModelSerializer):
     def to_representation(self, instance: User) -> dict:
         representation = super().to_representation(instance)
 
-        # Generate a new JWT for the newly created user
-        refresh: RefreshToken = RefreshToken.for_user(instance)
+        # Generate a new JWT for the newly created user using the above custom token pair serializer
+        refresh: RefreshToken = CustomTokenObtainPairSerializer.get_token(
+            instance)
 
-        # Add refresh and access tokens under Authorization key in returned representation
-        representation['Authorization'] = {
+        # Add refresh and access tokens to returned representation
+        representation = {
             'refresh': str(refresh),
             'access': str(refresh.access_token),
         }

@@ -14,6 +14,10 @@ h1 {
   font-size: 36px;
 }
 
+p {
+  color: rgba(255, 255, 255, 0.8);
+}
+
 /* Disable autofill background color in input boxes in chrome */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
@@ -27,8 +31,8 @@ input:-webkit-autofill {
   -webkit-text-fill-color: white !important;
 }
 
-/* Gradient button */
-.btn-grad {
+/* Primary gradient button */
+.btn-grad-primary {
   background-image: linear-gradient(
     to right,
     var(--primary-color-1) 0%,
@@ -37,7 +41,7 @@ input:-webkit-autofill {
   );
 }
 
-.btn-grad {
+.btn-grad-primary {
   margin: 20px 0;
   padding: 18px 45px;
   text-align: center;
@@ -53,12 +57,37 @@ input:-webkit-autofill {
   width: 100%;
 }
 
-.btn-grad:hover {
+.btn-grad-primary:hover {
   background-position: right center; /* change the direction of the change here */
   color: #fff;
   text-decoration: none;
   border-width: 0;
   box-shadow: 0 0 30px var(--primary-color-shadow);
+}
+
+/* Secondary button */
+.btn-secondary {
+  margin: 20px 0;
+  padding: 18px 45px;
+  text-align: center;
+  text-transform: uppercase;
+  transition: 0.5s;
+  background-size: 200% auto;
+  color: white;
+  border-radius: 15px;
+  border-width: 0;
+  border-color: var(--input-border-inactive);
+  display: block;
+  font-weight: bold;
+  width: 100%;
+  background-color: var(--input-box-background);
+}
+
+.btn-secondary:hover {
+  color: #fff;
+  text-decoration: none;
+  border-width: 0;
+  box-shadow: 0 0 20px var(--primary-color-shadow);
 }
 
 .button-container {
@@ -207,4 +236,54 @@ input:-webkit-autofill {
 
 .upload-image:hover .overlay {
   opacity: 1;
+}
+
+/* Container for 2 buttons side by side */
+.dual-button-container {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+.dual-button-button {
+  margin: 0 20px;
+  width: 100%;
+}
+
+@media (max-width: 400px) {
+  .dual-button-container {
+    flex-direction: column;
+  }
+}
+
+/* Typewriter style animation */
+.typewriter h1 {
+  overflow: hidden; /* Ensures the content is not revealed until the animation */
+  border-right: 0.15em solid var(--primary-color-2); /* The typwriter cursor */
+  white-space: nowrap; /* Keeps the content on a single line */
+  margin: 0 auto; /* Gives that scrolling effect as the typing happens */
+  letter-spacing: 0.15em; /* Adjust as needed */
+  animation: typing 3.5s steps(40, end), blink-caret 0.75s step-end infinite;
+}
+
+/* The typing effect */
+@keyframes typing {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+/* The typewriter cursor effect */
+@keyframes blink-caret {
+  from,
+  to {
+    border-color: transparent;
+  }
+  50% {
+    border-color: var(--primary-color-2);
+  }
 }

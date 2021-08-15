@@ -3,6 +3,9 @@ import { HiShieldCheck } from 'react-icons/hi';
 import Button from '../../components/input/button';
 import TextInput from '../../components/input/text_input';
 import { userContext } from '../../userContext';
+import { extractProfileFromJWT } from '../../utils/auth';
+import SetProfilePhotoPage from './SetProfilePhotoPage';
+import { history, useHistory } from 'react-router-dom';
 
 export default function RegisterPage(props) {
   const [username, setUsername] = useState('');
@@ -14,6 +17,8 @@ export default function RegisterPage(props) {
 
   // User context
   const { user, setUser } = useContext(userContext);
+
+  let history = useHistory();
 
   // Validate that username is valid
   useEffect(() => {
@@ -78,20 +83,22 @@ export default function RegisterPage(props) {
         },
         body: JSON.stringify({'username': username, 'password': password})
       }).then(response => {
-        // Signup valid, proceed to next phase
         if (response.status === 201) {
+          // Signup valid, proceed to next phase
           return response.json();
         } else {
           detectErrors();
         }
       }).then(data => {
-        // Set user context and proceed to next phase of signup
-        setUser(data);
-        // Store access and refresh tokens in local storage
-        localStorage.setItem('access', data.Authorization.access);
-        localStorage.setItem('refresh', data.Authorization.refresh);
-        props.nextSignupPhase();
-      })
+        if (data !== undefined) {
+          // Set user context and proceed to next phase of signup
+          // Setup_phase will effectively be an enum representing the current stage in signup - 1 being the next phase
+          extractProfileFromJWT(user, setUser, data.access, data.refresh, {'signup_phase': 1});
+          // Store access and refresh tokens in local storage
+          localStorage.setItem('access', data.access);
+          localStorage.setItem('refresh', data.refresh);
+        }
+      });
     } else {
       detectErrors();
     }
@@ -152,6 +159,6 @@ export default function RegisterPage(props) {
       errorMessage="Doesn't match!"
     />
     {/* Submit button */}
-    <Button text='Create Account' type='submit' onClick={handleSubmit} />
+    <Button primary text='Create Account' type='submit' onClick={handleSubmit} />
   </div>;
 }

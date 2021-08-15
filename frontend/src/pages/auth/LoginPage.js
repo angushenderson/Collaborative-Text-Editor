@@ -1,18 +1,19 @@
 import { useState, useContext } from 'react';
-import { Redirect } from 'react-router-dom';
+import { Redirect, useHistory } from 'react-router-dom';
 import TextInput from '../../components/input/text_input';
 import Button from '../../components/input/button';
 import { userContext } from '../../userContext';
+import { extractProfileFromJWT } from '../../utils/auth';
 
-export default function LoginPage(props) {
+export default function LoginPage (props) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [inputError, setInputError] = useState(false);
-  // If true, redirect to homepage (login complete)
-  const [redirect, setRedirect] = useState(false);
 
   // User context
   const { user, setUser } = useContext(userContext);
+
+  const history = useHistory();
 
   const resetErrors = () => {
     setInputError(false);
@@ -42,21 +43,17 @@ export default function LoginPage(props) {
       }).then(data => {
         if (data !== undefined) {
           // Set user context and proceed redirect to homepage
-          setUser(data);
+          extractProfileFromJWT(user, setUser, data.access, data.refresh);
           // Store access and refresh tokens in local storage
           localStorage.setItem('access', data.access);
           localStorage.setItem('refresh', data.refresh);
-          setRedirect(true);
+          // Login complete, redirect to home page
+          history.push('');
         }
-      })
+      });
     } else {
       setInputError(true);
     }
-  }
-
-  if (redirect) {
-    // Login complete
-    return <Redirect to='' />
   }
 
   return <div className='form-container'>
@@ -90,6 +87,6 @@ export default function LoginPage(props) {
       isValid={password !== ''}
     />
     {/* Submit button */}
-    <Button text='Login' type='submit' onClick={handleSubmit} />
+    <Button primary text='Login' type='submit' onClick={handleSubmit} />
   </div>;
 }
