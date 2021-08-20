@@ -8,7 +8,8 @@ from authentication.models import User
 class Document(models.Model):
     """ Model for representing a document page """
     id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
-    title = models.CharField(max_length=255, null=True, blank=True)
+    title = models.CharField(max_length=256, default='', blank=True)
+    content = models.TextField(default='', blank=True)
     collaborators = models.ManyToManyField(
         User, through='DocumentCollaborator', through_fields=('document', 'user'), related_name='collaborators')
 

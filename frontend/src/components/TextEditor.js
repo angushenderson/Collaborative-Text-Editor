@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Editor, EditorState, RichUtils, convertToRaw, convertFromRaw } from 'draft-js';
 import 'draft-js/dist/Draft.css';
 
-export default function Editor(props) {
+export default function TextEditor(props) {
   // Text editor using draft.js
 
   // Editor state, use editorState to access rich text in editor
@@ -33,8 +33,8 @@ export default function Editor(props) {
     setEditorState(RichUtils.toggleInlineStyle(editorState, newStyle));
   }
 
-  return <div>
+  return <div className='editor-container'>
     <button onClick={() => handleEditorStyleChange('BOLD')}>Bold</button>
-    <Editor editorState={editorState} handleKeyCommand={handleKeyCommand} onChange={setEditorState} />
+    <Editor editorState={editorState} handleKeyCommand={handleKeyCommand} onChange={setEditorState} spellCheck={true} />
   </div>;
 }

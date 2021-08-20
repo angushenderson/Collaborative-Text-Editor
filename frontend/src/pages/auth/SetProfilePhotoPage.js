@@ -37,10 +37,10 @@ export default function SetProfilePhotoPage(props) {
       let formData = new FormData();
       formData.append('profile_picture', image);
       
-      baseRequest(user, setUser, history, () => {
+      baseRequest(user, setUser, history, (accessToken) => {
         fetch('/api/auth/my-account/', {
           method: 'PUT',
-          headers: {'Authorization': `Bearer ${user.Authorization.access}`},
+          headers: {'Authorization': `Bearer ${accessToken}`},
           body: formData,
         }).then(response => response.json())
         .then(data => {

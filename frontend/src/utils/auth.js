@@ -6,7 +6,7 @@ export function isUserAuthenticated(user) {
   return user.hasOwnProperty('Authorization');
 }
 
-export function extractProfileFromJWT(user, setUser, accessToken, refreshToken, additionalArgs) {
+export function extractProfileFromJWT(user, setUser, accessToken, refreshToken, additionalArgs={}) {
   // Extract data from JWT and insert into user object
   // Additional args is an object of extra data to append to user object (user object values will overwrite keys in this object if duplicated exist)
   const token = jwt_decode(accessToken);

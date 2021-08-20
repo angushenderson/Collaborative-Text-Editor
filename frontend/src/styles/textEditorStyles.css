@@ -1,0 +1,11 @@
+/* Style of preview text */
+.public-DraftEditorPlaceholder-root {
+  font-size: 48px;
+  font-weight: bold;
+}
+
+/* Custom title style */
+.page-title {
+  font-size: 48px;
+  font-weight: bold;
+}

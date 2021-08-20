@@ -8,7 +8,7 @@ class DocumentSerializer(ModelSerializer):
 
     class Meta:
         model = Document
-        fields = '__all__'
+        fields = ('id', 'title')
 
     def create(self, validated_data) -> Document:
         """

@@ -7,6 +7,9 @@
   --input-box-background: #171717;
   --input-border-inactive: #1c1c1c;
   --success-green: #4bca81;
+
+  --background-color: #101010;
+  --accent-background-color: #292929;
 }
 
 /* Base styles */
@@ -286,4 +289,46 @@ input:-webkit-autofill {
   50% {
     border-color: var(--primary-color-2);
   }
+}
+
+/* Text editor styles */
+.editor-container {
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* Sidebar */
+.sidebar {
+  height: 100% !important;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid;
+  border-radius: 0;
+  border-color: rgba(64, 194, 133, 0.693);
+  background-color: rgb(255, 255, 255);
+  transition: 0.8s ease;
+}
+
+.sidebar-toggle-menu {
+  height: 50px;
+  border-top-right-radius: 10rem;
+  border-bottom-right-radius: 9rem;
+  width: 10px;
+  position: absolute;
+  outline: none;
+  z-index: 1;
+  background-color: rgba(64, 194, 133, 0.693);
+  border-color: rgba(64, 194, 133, 0.693);
+  border-left: 0;
+}
+
+/* Title editor */
+.title-editor-container {
+  margin-top: 96px;
+}
+
+/* Text editor */
+.text-editor-container {
+  margin-top: 32px;
 }

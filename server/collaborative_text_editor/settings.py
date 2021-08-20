@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework_simplejwt',
+    'channels',
     'api',
     'authentication',
 ]
@@ -76,6 +77,17 @@ TEMPLATES = [
         },
     },
 ]
+
+ASGI_APPLICATION = 'collaborative_text_editor.asgi.application'
+
+# CHANNEL_LAYER = {
+#     'default': {
+#         'BACKEND': 'channels_redis.core.RedisChannelLayer',
+#         'CONFIG': {
+#             'hosts': [('192.168.1.158', '6379')],
+#         }
+#     }
+# }
 
 WSGI_APPLICATION = 'collaborative_text_editor.wsgi.application'
 
@@ -154,5 +166,5 @@ REST_FRAMEWORK = {
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=14),
 }

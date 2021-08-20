@@ -1,4 +1,6 @@
-from rest_framework.generics import ListCreateAPIView
+from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
+from rest_framework.views import APIView
+from rest_framework.response import Response
 from api.models import Document
 from api.serializers import DocumentSerializer
 
@@ -18,3 +20,9 @@ class DocumentsListCreateView(ListCreateAPIView):
         """
         user = self.request.user
         return Document.objects.filter(collaborators=user)
+
+
+class DocumentView(RetrieveUpdateDestroyAPIView):
+    """ API view for editing documents """
+    queryset = Document.objects.all()
+    serializer_class = DocumentSerializer
