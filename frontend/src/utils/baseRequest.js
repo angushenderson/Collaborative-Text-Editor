@@ -4,9 +4,9 @@ import { logout } from './auth';
 export default function baseRequest(user, setUser, history, requestCallback) {
   // Helper function that handles JWT refreshing
   // user and setUser parameters are from userContext
-  // request parameter is the function to run when access token if valid. Function
-  //   should take accessToken parameter, this will be passed to it when called for making requests
   // history parameter from react-router-dom useHistory hook
+  // requestCallback parameter is the function to run when access token if valid. Function
+  //   should take accessToken parameter, this will be passed to it when called for making requests
 
   const access_exp = jwt_decode(user.Authorization.access).exp;
   const refresh_exp = jwt_decode(user.Authorization.refresh).exp;

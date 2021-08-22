@@ -1,6 +1,7 @@
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework import permissions
 from api.models import Document
 from api.serializers import DocumentSerializer
 
@@ -26,3 +27,4 @@ class DocumentView(RetrieveUpdateDestroyAPIView):
     """ API view for editing documents """
     queryset = Document.objects.all()
     serializer_class = DocumentSerializer
+    permission_classes = [permissions.AllowAny]

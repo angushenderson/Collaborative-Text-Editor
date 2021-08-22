@@ -36,11 +36,7 @@ class DocumentConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def update_document_title(self, text: str) -> None:
         """
-        Function to update document title with request text from anchor index
-        to focus index. When text is being deleted, the text parameter should be
-        an empty string (essentially replacing text with nothing), removing the need
-        for escape characters.
+        Function to update document title with request text
         """
         self.document.title = text
-        print(self.document.title)
         self.document.save(update_fields=['title'])

@@ -29,7 +29,6 @@ export default function EditorPage(props) {
       // Only send request if connection is open
       if (webSocket.current.readyState === WebSocket.OPEN) {
         const text = titleEditorState.getCurrentContent().getPlainText();
-        console.log(text);
         // Only send text if its changed
         if (previousTitle !== text) {
           webSocket.current.send(JSON.stringify({
