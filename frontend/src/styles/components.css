@@ -331,4 +331,5 @@ input:-webkit-autofill {
 /* Text editor */
 .text-editor-container {
   margin-top: 32px;
+  flex: 1 1 auto;
 }

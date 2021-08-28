@@ -99,6 +99,7 @@ export default function TitleEditor (props) {
       }}
       placeholder='Untitled'
       spellCheck={true}
+      readOnly={false}
     />
   </div>;
 }

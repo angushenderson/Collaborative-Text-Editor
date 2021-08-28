@@ -1,3 +1,4 @@
+from __future__ import annotations
 from uuid import uuid4
 from django.db import models
 from django.core.validators import MinLengthValidator, MaxLengthValidator
@@ -29,6 +30,18 @@ class DocumentCollaborator(models.Model):
     def __str__(self) -> str:
         return f'{self.user.username}: {self.permission}'
 
+    def block_range(self, anchor_key: str, focus_key: str) -> list[ContentBlock]:
+        """ Returns all content block objects from anchor to focus """
+        blocks: list[ContentBlock] = []
+
+        for block in self.blocks.all():
+            if block.key == anchor_key:
+                blocks.append(block)
+            elif block.key == focus_key:
+                break
+
+        return blocks
+
 
 class ContentBlock(models.Model):
     """
@@ -40,6 +53,9 @@ class ContentBlock(models.Model):
     key = models.CharField(max_length=5, blank=False)
     text = models.TextField(default='', blank=True)
     type = models.CharField(default='unstyled', max_length=20)
+
+    class Meta:
+        ordering = ['pk']
 
 
 class InlineStyle(models.Model):

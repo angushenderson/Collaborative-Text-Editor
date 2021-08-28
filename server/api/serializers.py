@@ -1,6 +1,6 @@
 from django.conf import settings
-from rest_framework.serializers import ModelSerializer
 from rest_framework import serializers
+from rest_framework.serializers import ModelSerializer
 from api.models import Document, DocumentCollaborator, ContentBlock, InlineStyle
 
 
@@ -28,6 +28,8 @@ class ContentBlockSerializer(ModelSerializer):
         representation = super().to_representation(instance)
         representation['inlineStyleRanges'] = representation.pop(
             'inline_styles')
+        # Add extra paramters for Draft.js editor
+        representation.update({'data': {}, 'depth': 0, 'entityRanges': []})
         return representation
 
     def create(self, validated_data) -> ContentBlock:
@@ -58,6 +60,14 @@ class DocumentSerializer(ModelSerializer):
         model = Document
         fields = ('id', 'title', 'blocks')
 
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation['editor'] = {
+            'blocks': representation.pop('blocks'),
+            'entityMap': {},
+        }
+        return representation
+
     def create(self, validated_data) -> Document:
         """
         Create a new document - with rich text blocks - owned by the
@@ -79,3 +89,21 @@ class DocumentSerializer(ModelSerializer):
                 block_serializer.save(document=document)
 
         return document
+
+
+class UpdateDocumentContentSerializer(serializers.Serializer):
+    """
+    Serializer class to handle updating a document's content
+    """
+    anchor_block_key = serializers.CharField(min_length=5, max_length=5)
+    focus_block_key = serializers.CharField(min_length=5, max_length=5)
+    anchor_offset = serializers.IntegerField(min_value=0)
+    focus_offset = serializers.IntegerField(min_value=0)
+    new_text = serializers.CharField()
+
+    def create(self, validated_data):
+        pass
+
+    def update(self, instance, validated_data):
+        """ Update the content blocks"""
+        pass
