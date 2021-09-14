@@ -1,7 +1,7 @@
-from django.urls import re_path
+from django.urls import path
 from api.consumers import DocumentConsumer
 
 
 websocket_urlpatterns = [
-    re_path(r'ws/document/', DocumentConsumer.as_asgi()),
+    path('ws/document/<str:document_id>/', DocumentConsumer.as_asgi()),
 ]

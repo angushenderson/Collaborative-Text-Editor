@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from django.conf import settings
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
@@ -76,7 +77,6 @@ class DocumentSerializer(ModelSerializer):
         user: settings.AUTH_USER_MODEL = validated_data.pop('user')
         content_blocks: list = validated_data.pop('blocks', [])
 
-        print(validated_data)
         document: Document = Document.objects.create(**validated_data)
         # User is creating the document, therefore they are the document owner
         collaborator: DocumentCollaborator = DocumentCollaborator.objects.create(
@@ -91,19 +91,61 @@ class DocumentSerializer(ModelSerializer):
         return document
 
 
+class WebSocketMessageSerializer(serializers.Serializer):
+    """ Simple serializer to check the basic validity of a websocket message :- only checks if a type exist """
+    type = serializers.CharField(required=True)
+    body = serializers.DictField(required=True)
+
+
+class UpdateDocumentTitleSerializer(serializers.Serializer):
+    """ Serializer to handle a document title update """
+    title = serializers.CharField(required=True)
+
+    def save(self, instance: Document, **kwargs):
+        instance.title = self.validated_data['title']
+        instance.save(update_fields=['title'])
+
+
 class UpdateDocumentContentSerializer(serializers.Serializer):
-    """
-    Serializer class to handle updating a document's content
-    """
-    anchor_block_key = serializers.CharField(min_length=5, max_length=5)
-    focus_block_key = serializers.CharField(min_length=5, max_length=5)
-    anchor_offset = serializers.IntegerField(min_value=0)
-    focus_offset = serializers.IntegerField(min_value=0)
-    new_text = serializers.CharField()
+    """ Serializer to handle a document update """
+    # type = serializers.ChoiceField(required=True, choices=[
+    #                                ('insert',) * 2, ('delete',) * 2])
+    data = serializers.ListField(required=True)
 
-    def create(self, validated_data):
+
+class _BaseDocumentUpdateContentSerializer(serializers.Serializer):
+    """ Base serializer class to be inherited by serializers which modify the content of a document """
+    block = serializers.CharField(required=True, min_length=5, max_length=5)
+    position = serializers.IntegerField(required=True, min_value=0)
+
+    @abstractmethod
+    def save(self, instance: Document, **kwargs) -> None:
+        """ Define the behaviour for updating document content """
         pass
 
-    def update(self, instance, validated_data):
-        """ Update the content blocks"""
-        pass
+
+class InsertDocumentContentSerializer(_BaseDocumentUpdateContentSerializer):
+    """ Serializer class to handle inserting text into a document's content """
+    text = serializers.CharField(required=True, trim_whitespace=False)
+
+    def save(self, instance: Document, **kwargs) -> None:
+        block: ContentBlock = instance.blocks.get_or_create(
+            key=self.validated_data['block'])[0]
+        block.text = block.text[:self.validated_data['position']] + \
+            self.validated_data['text'] + \
+            block.text[self.validated_data['position'] +
+                       len(self.validated_data['text']):]
+        block.save(update_fields=['text'])
+
+
+class DeleteDocumentContentSerializer(_BaseDocumentUpdateContentSerializer):
+    """ Serializer class to handle deleting text from a document's content """
+    offset = serializers.IntegerField(required=True, min_value=0)
+
+    def save(self, instance: Document, **kwargs) -> None:
+        block: ContentBlock = instance.blocks.get_or_create(
+            key=self.validated_data['block'])[0]
+        block.text = block.text[:self.validated_data['position']] + \
+            block.text[self.validated_data['position'] +
+                       self.validated_data['offset']:]
+        block.save(update_fields=['text'])
