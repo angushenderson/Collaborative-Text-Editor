@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext, useRef } from 'react';
 import { ContentState, EditorState, convertFromRaw } from 'draft-js';
-import { useHistory } from 'react-router-dom';
+import { useHistory, useLocation  } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import TextEditor from '../components/TextEditor';
 import TitleEditor from '../components/TitleEditor';
@@ -8,6 +8,7 @@ import { userContext } from '../userContext';
 import baseRequest from '../utils//baseRequest';
 import useInterval from '../utils/useInterval';
 import isNull from '../utils/isNull';
+import Button from '../components/input/button';
 
 export default function EditorPage(props) {
   const webSocket = useRef(null);
@@ -18,7 +19,13 @@ export default function EditorPage(props) {
   // User context
   const { user, setUser } = useContext(userContext);
 
+  // Router
   const history = useHistory();
+  const location = useLocation();
+
+  // Document
+  const [documents, setDocuments] = useState(null);
+  const [currentDocumentId, setCurrentDocumentId] = useState(null);
 
   // State for managing title input box
   const [titleEditorState, setTitleEditorState] = useState(null);
@@ -26,17 +33,20 @@ export default function EditorPage(props) {
 
   // State for managing document editor
   const [documentEditorState, setDocumentEditorState] = useState(null);
+
+  const [sidebarContentMargin, setSidebarContentMargin] = useState(250);
   
-  const resetUpdatedSelection = () => {
-    return {
-      anchorBlockKey: null,
-      focusBlockKey: null,
-      anchorOffset: null,
-      focusOffset: null,
-    };
-  }
-  
-  const [updatedSelection, setUpdatedSelection] = useState(resetUpdatedSelection());
+  /* State to track data which has been updated locally, but not yet sent to server+other clients
+  Schema for this will look like:
+    {
+      type: str,
+      block: str - id of block being updated,
+      position: int,
+      text: str - if text has been added,
+      offset: int - if text is being deleted,
+    }
+  */
+  const [updatedContentStack, setUpdatedContentStack] = useState([]);
 
   const sendUpdatedTitle = () => {
     // Function to send text in title text box to websocket if text has changed
@@ -47,10 +57,25 @@ export default function EditorPage(props) {
         // Only send text if its changed
         if (previousTitle !== text) {
           webSocket.current.send(JSON.stringify({
-            'type': 'document-title',
-            'text': text,
+            'type': 'update-document-title',
+            'body': {
+              'title': text,
+            },
           }));
           setPreviousTitle(text);
+
+          setDocuments((documents) => {
+            // Update document title in documents list (shown in document explorer column)
+            var docIndex = documents.map((elem) => elem.id).indexOf(currentDocumentId);
+            return [
+              ...documents.slice(0, docIndex),
+              {
+                ...documents[docIndex],
+                title: text === '' ? 'Untitled' : text,
+              },
+              ...documents.slice(docIndex+1),
+            ]
+          });
         }
       } else {
         // TODO: handle unconnected errors here (prevent typing and show warning)
@@ -62,51 +87,51 @@ export default function EditorPage(props) {
     // Function to send the text which has been updated to server via open websocket
     if (documentEditorState !== null) {
       if (webSocket.current.readyState === WebSocket.OPEN) {
-        if (!isNull(updatedSelection)) {
+        if (!isNull(updatedContentStack)) {
           // Only send request if content has been updated
-          const text = getUpdatedSelectionText();
-          console.log(text);
+          console.log(updatedContentStack);
           webSocket.current.send(JSON.stringify({
-            'type': 'document-update',
-            'update_state': {...updatedSelection, text: text},
+            'type': 'update-document-content',
+            'body': {
+              'data': updatedContentStack,
+            },
           }));
           // Reset
-          setUpdatedSelection(resetUpdatedSelection());
+          setUpdatedContentStack([]);
         }
       }
     }
-  }
-
-  const getUpdatedSelectionText = () => {
-    // Returns the updated text from updatedSelection object state, this will account for the fact that anchor could be ahead of focus (back to front)
-    var text = '';
-    const content = documentEditorState.getCurrentContent();
-
-    if (updatedSelection.anchorBlockKey === updatedSelection.focusBlockKey) {
-      // For single block modifications
-      return content.getBlockForKey(updatedSelection.anchorBlockKey).getText().slice(updatedSelection.anchorOffset, updatedSelection.focusOffset);
-    }
-
-    // For multi block modifications
-    var block = content.getBlockForKey(updatedSelection.anchorBlockKey);
-    var text = block.getText().slice(updatedSelection.anchorOffset, block.getText().length);
-    while (block !== null) {
-      block = content.getBlockAfter(block.getKey());
-      if (block.getKey() === updatedSelection.focusBlockKey) {
-        text += block.getText().slice(0, updatedSelection.focusOffset);
-        block = null;
-      } else {
-        text += block.getText() + '\n';
-      }
-    }
-
-    return text;
-  }
+  };
 
   useEffect(() => {
+    baseRequest(user, setUser, history, (accessToken) => {
+      fetch('/api/documents/', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        }
+      }).then((response) => {
+        if (response.ok) {
+          return response.json();
+        }
+      }).then((data) => {
+        if (data !== undefined) {
+          // Set untitled default text
+          for (var i=0; i < data.length; i++) {
+            if (data[i].title === '') {
+              data[i].title = 'Untitled';
+            }
+          }
+          setDocuments(data);
+        }
+      });
+    })
+  }, []);
+
+  const fetchDocument = (id) => {
     // Fetch document
     baseRequest(user, setUser, history, (accessToken) => {
-      fetch('/api/documents/b50762e9-8f9b-4f80-8e31-4d7daf374d46/', {
+      fetch(`/api/documents/${id}/`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
@@ -118,13 +143,43 @@ export default function EditorPage(props) {
         return undefined;
       }).then((data) => {
         if (data !== undefined) {
+          setUpdatedContentStack([]);
           setTitleEditorState(() => EditorState.createWithContent(ContentState.createFromText(data.title)));
           setDocumentEditorState(() => EditorState.createWithContent(convertFromRaw(data.editor)));
           setPreviousTitle(data.title);
+          setCurrentDocumentId(data.id);
+          console.log(data.editor);
+          history.push(`/editor/${data.id}`);
         }
       });
     });
-  }, []);
+  };
+
+  const createNewDocument = () => {
+    baseRequest(user, setUser, history, (accessToken) => {
+      fetch('/api/documents/', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      }).then((response) => {
+        if (response.ok) {
+          return response.json();
+        }
+      }).then((data) => {
+        history.push(`/editor/${data.id}`);
+        // Give default title
+        data.title = 'Untitled';
+        setCurrentDocumentId(data.id);
+        setDocuments([
+          ...documents,
+          data
+        ]);
+      })
+    });
+    setTitleEditorState(() => EditorState.createEmpty());
+    setDocumentEditorState(() => EditorState.createEmpty());
+  }; 
 
   useInterval(() => {
     // Start a timer -> to prevent sending a request on every keypress
@@ -136,38 +191,63 @@ export default function EditorPage(props) {
 
   useEffect(() => {
     // Web socket setup
-    // 14776d62-411d-421c-b60a-548d5434e403/
     // Using .current to access value stored in reference hook
-    
-    webSocket.current = new WebSocket('ws://127.0.0.1:8000/ws/document/');
+    console.log(currentDocumentId);
+    if (currentDocumentId !== null) {
+      webSocket.current = new WebSocket(`ws://127.0.0.1:8000/ws/document/${currentDocumentId}/`);
 
-    // Function to run when data received
-    webSocket.current.onmessage = (message) => {
-      console.log(message);
-    };
-    return () => webSocket.current.close();
+      // Function to run when data received
+      webSocket.current.onmessage = (message) => {
+        console.log(message);
+      };
 
+      return () => webSocket.current.close();
+    }
+  }, [currentDocumentId]);
 
+  useEffect(() => {
+    // Check the URL document id
+    const id = location.pathname.split('/')[2];
+    if (id !== undefined && id !== '') {
+      fetchDocument(id);
+      setCurrentDocumentId(id);
+    }
   }, []);
 
-  if (titleEditorState !== null && documentEditorState !== null) {
-    return <>
-      <div style={{display: 'flex', justifyContent: 'center', flexDirection: 'column', minHeight: '100%'}}>
-        <div className='title-editor-container'>
-          <TitleEditor editorState={titleEditorState} setEditorState={setTitleEditorState} />
+  if (documents !== null) {
+    return <div>
+      <Sidebar width={250} setSidebarContentMargin={setSidebarContentMargin} >
+        {documents.map((document, index) => {
+          return <div key={index} style={{padding: '2px 12px'}} onClick={() => fetchDocument(document.id)}>
+            <h3>{document.title}</h3>
+          </div>;
+        })}
+        <div style={{padding: '12px'}}>
+          <Button text='New page' onClick={createNewDocument} />
         </div>
-        <div className='text-editor-container'>
-          <TextEditor
-            editorState={documentEditorState}
-            setEditorState={setDocumentEditorState}
-            updatedSelection={updatedSelection}
-            setUpdatedSelection={setUpdatedSelection}
-            sendUpdatedDocument={sendUpdatedDocument}
-          />
-          <button onClick={sendUpdatedDocument}>Send updated text</button>
+      </Sidebar>
+      
+      {(titleEditorState !== null && documentEditorState !== null) ?
+        <div style={{marginLeft: `${sidebarContentMargin}px`}}>
+          <div style={{display: 'flex', justifyContent: 'center', flexDirection: 'column', minHeight: '100%'}}>
+            <div className='title-editor-container'>
+              <TitleEditor editorState={titleEditorState} setEditorState={setTitleEditorState} />
+            </div>
+            <div className='text-editor-container'>
+              <TextEditor
+                editorState={documentEditorState}
+                setEditorState={setDocumentEditorState}
+                updatedContentStack={updatedContentStack}
+                setUpdatedContentStack={setUpdatedContentStack}
+                sendUpdatedDocument={sendUpdatedDocument}
+              />
+            </div>
+          </div>
         </div>
-      </div>
-    </>;
+        :
+        <h1>Loading...</h1>
+      }
+    </div>;
   } else {
     return <h1>Loading...</h1>;
   }

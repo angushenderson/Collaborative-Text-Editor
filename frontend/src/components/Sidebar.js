@@ -1,9 +1,10 @@
 import React from 'react';
 
-export default function Sidebar({width, height, children}) {
+export default function Sidebar({width, setSidebarContentMargin, children}) {
   const [xPosition, setX] = React.useState(-width);
 
   const toggleMenu = () => {
+    setSidebarContentMargin(-xPosition);
     if (xPosition < 0) {
       setX(0);
     } else {
@@ -20,14 +21,14 @@ export default function Sidebar({width, height, children}) {
     style={{
       transform: `translatex(${xPosition}px)`,
       width: width,
-      minHeight: height
     }}
   >
     <button
       onClick={() => toggleMenu()}
-      className="toggle-menu"
+      className="sidebar-toggle-menu"
       style={{
-        transform: `translate(${width}px, 20vh)`
+        transform: `translate(${width}px, 20vh)`,
+        width: '30px',
       }}
     ></button>
     <React.Fragment>{children}</React.Fragment>

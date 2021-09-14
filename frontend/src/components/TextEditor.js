@@ -1,151 +1,105 @@
 import { useState, useEffect } from 'react';
-import { Editor, EditorState, RichUtils, convertToRaw, convertFromRaw, getDefaultKeyBinding } from 'draft-js';
+import { Editor, EditorState, RichUtils, convertToRaw, convertFromRaw, getDefaultKeyBinding, Modifier, SelectionState, DraftRemovalDirection } from 'draft-js';
 import _, { update } from 'lodash';
 import isPrintableKeyEvent from 'is-printable-key-event';
 import 'draft-js/dist/Draft.css';
 import isNull from '../utils/isNull';
 
+
+const WORD_BREAK_CHARACTERS = [' ', '(', ')', '{', '}', '[', ']', '"', '.', ',', '@', '/', '!', '£', '$', '%', '^', '&', '*', '\\', '?', '<', '>', '|', '`', ':', ';', '#', '~', '-', '+', '='];
+
 export default function TextEditor(props) {
   // Text editor using draft.js
   const editorState = props.editorState;
   const setEditorState = props.setEditorState;
-  const updatedSelection = props.updatedSelection;
-  const setUpdatedSelection = props.setUpdatedSelection;
+  const updatedContentStack = props.updatedContentStack;
+  const setUpdatedContentStack = props.setUpdatedContentStack;
   const sendUpdatedDocument = props.sendUpdatedDocument;
 
   const [editorHasFocus, setEditorHasFocus] = useState(false);
-
-  useEffect(() => {
-    if (!isNull(updatedSelection)) {
-      console.log(updatedSelection);
-    }
-  }, [updatedSelection]);
-
-  function keyBindingFn(e) {
-    const keyBinding = getDefaultKeyBinding(e);
-
-    const selection = {
-      anchorBlockKey: editorState.getSelection().getAnchorKey(),
-      focusBlockKey: editorState.getSelection().getFocusKey(),
-      anchorOffset: editorState.getSelection().getAnchorOffset(),
-      focusOffset: editorState.getSelection().getFocusOffset(),
-    };
   
-    if (isNull(updatedSelection)) {
-      var newUpdatedSelection = {...selection};
-    } else {
-      var newUpdatedSelection = {...updatedSelection};
-    }
+  function keyBindingFn(e) {
+    // This function is run FIRST
+    const keyBinding = getDefaultKeyBinding(e);
+    var newContentBlocks = [];
 
-    if (Array.from({length: 8}, (_, i) => i + 33).includes(e.keyCode)) {
-      // Custom function code to state when the editor cursor has been moved
-      return 'move-cursor';
-    } else if (isPrintableKeyEvent(e)) {
-      // Single character is being added
-      const newOffset = selection.anchorOffset + 1;
+    // TODO Implement handling of highlighted text
 
-      setUpdatedSelection({
-        ...newUpdatedSelection,
-        anchorOffset: newOffset < newUpdatedSelection.anchorOffset ? newOffset : newUpdatedSelection.anchorOffset,  
-        focusOffset: newOffset >= newUpdatedSelection.focusOffset ? newOffset : newUpdatedSelection.focusOffset,
+    if (['backspace', 'backspace-word'].includes(keyBinding)) {
+      // Text has been deleted
+      var words = editorState.getCurrentContent().getBlockForKey(editorState.getSelection().getAnchorKey()).getText();
+      words = words.slice(0,editorState.getSelection().getAnchorOffset());
+      
+      // Calculate length of last word to remove
+      var i = 0;
+      // Handle break word characters
+      while (WORD_BREAK_CHARACTERS.includes(words[words.length-1-i])) {
+        i++;
+      }
+      // Handle counting word lengths
+      while (![...WORD_BREAK_CHARACTERS, undefined].includes(words[words.length-1-i])) {
+        i++;
+      }
+
+      const position = keyBinding === 'backspace-word' ? words.length - i : editorState.getSelection().getAnchorOffset()-1;
+      const offset = keyBinding === 'backspace-word' ?  i : 1;
+
+      if (keyBinding === 'backspace-word') {
+        // Update editor state
+        const selection = new SelectionState({
+          anchorKey: editorState.getSelection().getAnchorKey(),
+          focusKey: editorState.getSelection().getFocusKey(),
+          anchorOffset: editorState.getSelection().getAnchorOffset()-i,
+          focusOffset: editorState.getSelection().getAnchorOffset(),
+          isBackward: false,
+          hasFocus: editorState.getSelection().getHasFocus(),
+        });
+        const newState = Modifier.removeRange(editorState.getCurrentContent(), selection, 'backward');
+        setEditorState(EditorState.push(editorState, newState, 'insert-characters'));
+      }
+
+      console.log('POSITION', position, 'OFFSET', offset,);
+
+      newContentBlocks.push({
+        type: 'delete',
+        block: editorState.getSelection().getAnchorKey(),
+        position: position,
+        offset: offset,
+      });
+    } else if (keyBinding === 'split-block') {
+      // Enter key has been pressed
+      newContentBlocks.push({});
+    } else if (Array.from({length: 8}, (_, i) => i + 33).includes(e.keyCode)) {
+      // Arrow key / page key pressed
+      console.log({
+        type: 'cursor-moved',
+        block: 'block_id',
+        position: 'an integer',
+        text: 'text',
+      });
+    } else if (keyBinding === null && (isPrintableKeyEvent(e) || e.keyCode === 32)) {
+      // Text has been added
+      newContentBlocks.push({
+        type: 'insert',
+        block: editorState.getSelection().getAnchorKey(),
+        position: editorState.getSelection().getAnchorOffset(),
+        text: e.key,
       });
     }
-    // else if (e.keyCode === 13) {
-    //   // Enter key pressed
-    //   setUpdatedSelection({
-    //     ...newUpdatedSelection,
-    //     focusBlockKey: newUpdatedSelection.focusBlockKey,
-    //     focusOffset: 0,
-    //   });
-    // }
 
+    if (newContentBlocks) {
+      setUpdatedContentStack([...updatedContentStack, ...newContentBlocks]);
+    }
     return keyBinding;
   }
 
-  function handleKeyCommand (command, editorState) {
-    // TODO Need to make sure anchor is before or inline with focus at all times
-
-    const selection = {
-      anchorBlockKey: editorState.getSelection().getAnchorKey(),
-      focusBlockKey: editorState.getSelection().getFocusKey(),
-      anchorOffset: editorState.getSelection().getAnchorOffset(),
-      focusOffset: editorState.getSelection().getFocusOffset(),
-    };
-    const content = editorState.getCurrentContent();
-
-    // If updatedSelection is filled with null values, establish an anchor based on current selection
-    if (isNull(updatedSelection)) {
-      var newUpdatedSelection = {...selection};
-    } else {
-      var newUpdatedSelection = {...updatedSelection};
-    }
-
-    // Key of current block or block above if moving cursor to one above
-    const row = selection.focusOffset - 1 < 0 ? content.getKeyBefore(selection.anchorBlockKey) : selection.anchorBlockKey;
-    const offset = selection.focusOffset - 1 < 0 ? content.getBlockForKey(row).getLength() : selection.focusOffset - 1
-
+  function handleKeyCommand (command, _) {
+    // Dont bother with this function :- handle it all in the above function instead
+    // This function is run SECOND
     if (command === 'backspace') {
-      // Handle text being removed one character at a time
-      newUpdatedSelection = {
-        ...newUpdatedSelection,
-        // Only move anchor back if row has moved up
-        anchorBlockKey: row !== newUpdatedSelection.anchorBlockKey ? row : newUpdatedSelection.anchorBlockKey,
-        focusBlockKey: row === updatedSelection.focusBlockKey ? row : newUpdatedSelection.focusBlockKey,
-        // More anchor back if focus will overtake anchor, else move focus backwards
-        anchorOffset: offset < newUpdatedSelection.anchorOffset ? offset : newUpdatedSelection.anchorOffset,
-        focusOffset: offset >= newUpdatedSelection.focusOffset ? offset : newUpdatedSelection.focusOffset,
-      };
-    } else if(command === 'backspace-word') {
-      // Handle text being removed one word at a time
-      
-      if (content.getBlockForKey(row).getText().length !== 0) {
-        // Find the next backspace
-        var char = content.getBlockForKey(row).getText()[selection.focusOffset-1] === ' ' ? selection.focusOffset-2 : selection.focusOffset-1;
-        while (content.getBlockForKey(row).getText()[char-1] !== ' ' && char !== 0) {
-          char--;
-        }
-        const newOffset = selection.focusOffset - 1 < 0 ? content.getBlockForKey(row).getLength() : char;
 
-        newUpdatedSelection = {
-          ...newUpdatedSelection,
-          // Only move anchor back if row has moved up
-          anchorBlockKey: row !== newUpdatedSelection.anchorBlockKey ? row : newUpdatedSelection.anchorBlockKey,
-          focusBlockKey: row === updatedSelection.focusBlockKey ? row : newUpdatedSelection.focusBlockKey,
-          // More anchor back if focus will overtake anchor, else move focus backwards
-          anchorOffset: newOffset < newUpdatedSelection.anchorOffset ? newOffset : newUpdatedSelection.anchorOffset,
-          focusOffset: newOffset >= newUpdatedSelection.focusOffset ? newOffset : newUpdatedSelection.focusOffset,
-        };
-      } else {
-        newUpdatedSelection = {
-          ...newUpdatedSelection,
-          focusBlockKey: row,
-          focusOffset: offset,
-        };
-      }
-
-    } else if (command === 'delete') {
-      // Delete key will only delete content in current block - it will never change blocks
-      // TODO, UPDATE THIS BEHAVIOUR, not entirely sure about how delete key should work so figure it out and fix this in accordance to new anchor focus rules
-      newUpdatedSelection = {
-        ...newUpdatedSelection,
-        focusOffset: selection.focusOffset
-      };
-
-    }
-
-    if (command === 'move-cursor') {
-      // Cursor has been moved by key presses, send any changes to avoid edge case conflicts
-      sendUpdatedDocument();
-      return 'not-handled';
-    }
-
-    // Update state
-    setUpdatedSelection(newUpdatedSelection);
-
-    // Function to handle key commands such as Ctrl + b or Ctrl + c
-    const newEditorState = RichUtils.handleKeyCommand(editorState, command);
-    if (newEditorState) {
-      setEditorState(newEditorState);
+    } else if (command === 'backspace-word') {
+      // Custom backspace word behaviour in above function
       return 'handled';
     }
 

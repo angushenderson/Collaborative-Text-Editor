@@ -10,6 +10,7 @@
 
   --background-color: #101010;
   --accent-background-color: #292929;
+  --lightest-accent-color: #303030;
 }
 
 /* Base styles */
@@ -301,13 +302,12 @@ input:-webkit-autofill {
 /* Sidebar */
 .sidebar {
   height: 100% !important;
-  display: flex;
-  flex-direction: column;
-  border-right: 1px solid;
-  border-radius: 0;
-  border-color: rgba(64, 194, 133, 0.693);
-  background-color: rgb(255, 255, 255);
-  transition: 0.8s ease;
+  position: fixed;
+  top: 0;
+  left: 0;
+  background-color: var(--accent-background-color);
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .sidebar-toggle-menu {
@@ -332,4 +332,24 @@ input:-webkit-autofill {
 .text-editor-container {
   margin-top: 32px;
   flex: 1 1 auto;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 15px;
+}
+
+::-webkit-scrollbar-track {
+  border-radius: 10px;
+  background: var(--input-box-background);
+  /* box-shadow: 0 0 5px grey; */
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--input-border-inactive);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--lightest-accent-color);
 }
