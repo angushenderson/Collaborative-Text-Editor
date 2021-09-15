@@ -149,3 +149,17 @@ class DeleteDocumentContentSerializer(_BaseDocumentUpdateContentSerializer):
             block.text[self.validated_data['position'] +
                        self.validated_data['offset']:]
         block.save(update_fields=['text'])
+
+
+class SplitContentBlockSerializer(_BaseDocumentUpdateContentSerializer):
+    newBlock = serializers.CharField(required=True, min_length=5, max_length=5)
+
+    def save(self, instance: Document, **kwargs) -> None:
+        block: ContentBlock = instance.blocks.get(
+            key=self.validated_data['block'])
+        overflow_text: str = block.text[self.validated_data['position']:]
+        block.text = block.text[:self.validated_data['position']]
+        block.save(update_fields=['text'])
+
+        new_block: ContentBlock = instance.blocks.create(
+            key=self.validated_data['newBlock'], text=overflow_text)

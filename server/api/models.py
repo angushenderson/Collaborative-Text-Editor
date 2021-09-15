@@ -30,6 +30,7 @@ class DocumentCollaborator(models.Model):
         return f'{self.user.username}: {self.permission}'
 
 
+# TODO Look at using document indexes to sort content blocks in the correct order
 class ContentBlock(models.Model):
     """
     Model representing single content block in larger document.

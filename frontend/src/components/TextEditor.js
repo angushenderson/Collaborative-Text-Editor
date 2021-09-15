@@ -56,7 +56,7 @@ export default function TextEditor(props) {
           hasFocus: editorState.getSelection().getHasFocus(),
         });
         const newState = Modifier.removeRange(editorState.getCurrentContent(), selection, 'backward');
-        setEditorState(EditorState.push(editorState, newState, 'insert-characters'));
+        setEditorState(EditorState.push(editorState, newState, 'remove-range'));
       }
 
       newContentBlocks.push({
@@ -67,6 +67,15 @@ export default function TextEditor(props) {
       });
     } else if (keyBinding === 'split-block') {
       // Enter key has been pressed
+      const newContentState = Modifier.splitBlock(editorState.getCurrentContent(), editorState.getSelection());
+      newContentBlocks.push({
+        type: 'split-block',
+        block: editorState.getSelection().getAnchorKey(),
+        newBlock: newContentState.getKeyAfter(editorState.getSelection().getAnchorKey()),
+        position: editorState.getSelection().getAnchorOffset(),
+      });
+      setEditorState(EditorState.push(editorState, newContentState, 'split-block'));
+
     } else if (Array.from({length: 8}, (_, i) => i + 33).includes(e.keyCode)) {
       // Arrow key / page key pressed
       console.log({
@@ -98,6 +107,8 @@ export default function TextEditor(props) {
 
     } else if (command === 'backspace-word') {
       // Custom backspace word behaviour in above function
+      return 'handled';
+    } else if (command === 'split-block') {
       return 'handled';
     }
 
