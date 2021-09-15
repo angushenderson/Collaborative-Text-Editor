@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Editor, EditorState, RichUtils, convertToRaw, convertFromRaw, getDefaultKeyBinding, Modifier, SelectionState, DraftRemovalDirection } from 'draft-js';
+import { Editor, EditorState, RichUtils, getDefaultKeyBinding, Modifier, SelectionState, ContentBlock } from 'draft-js';
 import _, { update } from 'lodash';
 import isPrintableKeyEvent from 'is-printable-key-event';
 import 'draft-js/dist/Draft.css';
 import isNull from '../utils/isNull';
 
 
+// Characters which are used to break up words - used for backspace-word operations
 const WORD_BREAK_CHARACTERS = [' ', '(', ')', '{', '}', '[', ']', '"', '.', ',', '@', '/', '!', '£', '$', '%', '^', '&', '*', '\\', '?', '<', '>', '|', '`', ':', ';', '#', '~', '-', '+', '='];
 
 export default function TextEditor(props) {
@@ -58,8 +59,6 @@ export default function TextEditor(props) {
         setEditorState(EditorState.push(editorState, newState, 'insert-characters'));
       }
 
-      console.log('POSITION', position, 'OFFSET', offset,);
-
       newContentBlocks.push({
         type: 'delete',
         block: editorState.getSelection().getAnchorKey(),
@@ -68,7 +67,6 @@ export default function TextEditor(props) {
       });
     } else if (keyBinding === 'split-block') {
       // Enter key has been pressed
-      newContentBlocks.push({});
     } else if (Array.from({length: 8}, (_, i) => i + 33).includes(e.keyCode)) {
       // Arrow key / page key pressed
       console.log({

@@ -2,6 +2,7 @@ import { useState, useEffect, useContext, useRef } from 'react';
 import { ContentState, EditorState, convertFromRaw } from 'draft-js';
 import { useHistory, useLocation  } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
+import Header from '../components/Header';
 import TextEditor from '../components/TextEditor';
 import TitleEditor from '../components/TitleEditor';
 import { userContext } from '../userContext';
@@ -216,18 +217,22 @@ export default function EditorPage(props) {
 
   if (documents !== null) {
     return <div>
-      <Sidebar width={250} setSidebarContentMargin={setSidebarContentMargin} >
+      {sidebarContentMargin !== 0 && <Sidebar width={270} setSidebarContentMargin={setSidebarContentMargin} >
         {documents.map((document, index) => {
-          return <div key={index} style={{padding: '2px 12px'}} onClick={() => fetchDocument(document.id)}>
-            <h3>{document.title}</h3>
+          return <div key={index} style={{padding: '2px 18px'}} onClick={() => fetchDocument(document.id)}>
+            <h4 style={{margin: '12px 0', cursor: 'pointer'}}>{document.title}</h4>
           </div>;
         })}
-        <div style={{padding: '12px'}}>
+        <div style={{padding: '12px 18px'}}>
           <Button text='New page' onClick={createNewDocument} />
         </div>
-      </Sidebar>
+      </Sidebar>}
       
-      {(titleEditorState !== null && documentEditorState !== null) ?
+      <div style={{marginLeft: `${sidebarContentMargin !== 0 ? sidebarContentMargin: 0}px`}}>
+        <Header documentTitle={titleEditorState !== null ? titleEditorState.getCurrentContent().getPlainText() : ''} sidebarOpen={sidebarContentMargin!==0} toggleSidebar={() => setSidebarContentMargin(270)} />
+      </div>
+
+      {( titleEditorState !== null && documentEditorState !== null) ?
         <div style={{marginLeft: `${sidebarContentMargin}px`}}>
           <div style={{display: 'flex', justifyContent: 'center', flexDirection: 'column', minHeight: '100%'}}>
             <div className='title-editor-container'>
