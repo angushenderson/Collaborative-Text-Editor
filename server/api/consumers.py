@@ -87,11 +87,10 @@ class DocumentConsumer(AsyncWebsocketConsumer):
             for update in serializer.validated_data['data']:
                 serializer = self.METHOD_SERIALIZERS.get(
                     update.get('type', ''))(data=update)
-                print(update)
                 if serializer.is_valid():
                     serializers.append(serializer)
-
-        await self.raise_error(serializer.errors)
+        else:
+            await self.raise_error(serializer.errors)
         return serializers
 
     @database_sync_to_async
@@ -101,7 +100,6 @@ class DocumentConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def update_document_title(self, serializer: UpdateDocumentTitleSerializer) -> None:
         """ Function to update document title with request text """
-        print(self.document.title)
         serializer.save(self.document)
 
     @database_sync_to_async

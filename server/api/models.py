@@ -1,8 +1,27 @@
 from __future__ import annotations
 from uuid import uuid4
+from random import randint
 from django.db import models
 from django.core.validators import MinLengthValidator, MaxLengthValidator
 from authentication.models import User
+from api.utils import increment_rank
+
+
+def generate_content_block_rank(previous_block: ContentBlock = None, next_block: ContentBlock = None, base_rank: str = 'hzztxk:') -> str:
+    """
+    Function to generate an initial rank value for a content block
+    """
+    if not previous_block and not next_block:
+        # No blocks in document, generate an initial ranking
+        return base_rank
+
+    if previous_block and not next_block:
+        # Adding block to end of document
+        return increment_rank(previous_block.order_rank.split(':')[0])
+
+    if previous_block and next_block:
+        # Splitting block
+        return
 
 
 class Document(models.Model):
@@ -41,9 +60,11 @@ class ContentBlock(models.Model):
     key = models.CharField(max_length=5, blank=False)
     text = models.TextField(default='', blank=True)
     type = models.CharField(default='unstyled', max_length=20)
+    # NOTE I know this isn't the best way of indexing the blocks... but this is a small personal project, and this database isn't realistically going to get hit that often
+    index = models.PositiveIntegerField()
 
     class Meta:
-        ordering = ['pk']
+        ordering = ['index']
 
 
 class InlineStyle(models.Model):

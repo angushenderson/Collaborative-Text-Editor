@@ -74,6 +74,7 @@ export default function TextEditor(props) {
         newBlock: newContentState.getKeyAfter(editorState.getSelection().getAnchorKey()),
         position: editorState.getSelection().getAnchorOffset(),
       });
+      console.log(editorState.getSelection().getAnchorKey());
       setEditorState(EditorState.push(editorState, newContentState, 'split-block'));
 
     } else if (Array.from({length: 8}, (_, i) => i + 33).includes(e.keyCode)) {

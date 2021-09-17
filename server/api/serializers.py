@@ -130,7 +130,7 @@ class InsertDocumentContentSerializer(_BaseDocumentUpdateContentSerializer):
 
     def save(self, instance: Document, **kwargs) -> None:
         block: ContentBlock = instance.blocks.get_or_create(
-            key=self.validated_data['block'])[0]
+            key=self.validated_data['block'], defaults={'index': 0})[0]
         block.text = block.text[:self.validated_data['position']] + \
             self.validated_data['text'] + \
             block.text[self.validated_data['position'] +
@@ -144,7 +144,7 @@ class DeleteDocumentContentSerializer(_BaseDocumentUpdateContentSerializer):
 
     def save(self, instance: Document, **kwargs) -> None:
         block: ContentBlock = instance.blocks.get_or_create(
-            key=self.validated_data['block'])[0]
+            key=self.validated_data['block'], defaults={'index': 0})[0]
         block.text = block.text[:self.validated_data['position']] + \
             block.text[self.validated_data['position'] +
                        self.validated_data['offset']:]
@@ -157,9 +157,18 @@ class SplitContentBlockSerializer(_BaseDocumentUpdateContentSerializer):
     def save(self, instance: Document, **kwargs) -> None:
         block: ContentBlock = instance.blocks.get(
             key=self.validated_data['block'])
+        print('ROOT', block.text, block.index)
         overflow_text: str = block.text[self.validated_data['position']:]
         block.text = block.text[:self.validated_data['position']]
         block.save(update_fields=['text'])
 
+        # Shift all block indexes forward
+        for b in instance.blocks.filter(index__gt=block.index):
+            print(b, b.text, b.index)
+            b.index = b.index + 1
+            b.save(update_fields=['index'])
+
+        # Create new ContentBlock
         new_block: ContentBlock = instance.blocks.create(
-            key=self.validated_data['newBlock'], text=overflow_text)
+            key=self.validated_data['newBlock'], text=overflow_text, index=block.index + 1)
+        print('NEW BLOCK', new_block.index)
