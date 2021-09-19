@@ -133,8 +133,7 @@ class InsertDocumentContentSerializer(_BaseDocumentUpdateContentSerializer):
             key=self.validated_data['block'], defaults={'index': 0})[0]
         block.text = block.text[:self.validated_data['position']] + \
             self.validated_data['text'] + \
-            block.text[self.validated_data['position'] +
-                       len(self.validated_data['text']):]
+            block.text[self.validated_data['position']:]
         block.save(update_fields=['text'])
 
 
@@ -152,23 +151,34 @@ class DeleteDocumentContentSerializer(_BaseDocumentUpdateContentSerializer):
 
 
 class SplitContentBlockSerializer(_BaseDocumentUpdateContentSerializer):
-    newBlock = serializers.CharField(required=True, min_length=5, max_length=5)
+    newBlock = serializers.CharField(
+        required=True, min_length=5, max_length=5)
 
     def save(self, instance: Document, **kwargs) -> None:
         block: ContentBlock = instance.blocks.get(
             key=self.validated_data['block'])
-        print('ROOT', block.text, block.index)
         overflow_text: str = block.text[self.validated_data['position']:]
         block.text = block.text[:self.validated_data['position']]
         block.save(update_fields=['text'])
 
         # Shift all block indexes forward
         for b in instance.blocks.filter(index__gt=block.index):
-            print(b, b.text, b.index)
             b.index = b.index + 1
             b.save(update_fields=['index'])
 
         # Create new ContentBlock
         new_block: ContentBlock = instance.blocks.create(
             key=self.validated_data['newBlock'], text=overflow_text, index=block.index + 1)
-        print('NEW BLOCK', new_block.index)
+
+
+class SetContentBlockTypeSerializer(_BaseDocumentUpdateContentSerializer):
+    """ Serializer for changing the type of a content block """
+    newBlockType = serializers.CharField(required=True)
+    position = None
+
+    def save(self, instance: Document, **kwargs):
+        block: ContentBlock = instance.blocks.get(
+            key=self.validated_data['block'])
+        print(self.validated_data['newBlockType'])
+        block.type = self.validated_data['newBlockType']
+        block.save(update_fields=['type'])

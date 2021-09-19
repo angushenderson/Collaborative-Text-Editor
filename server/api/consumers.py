@@ -10,7 +10,8 @@ from api.serializers import (
     _BaseDocumentUpdateContentSerializer,
     UpdateDocumentContentSerializer,
     UpdateDocumentTitleSerializer,
-    SplitContentBlockSerializer
+    SplitContentBlockSerializer,
+    SetContentBlockTypeSerializer
 )
 
 
@@ -25,6 +26,7 @@ class DocumentConsumer(AsyncWebsocketConsumer):
         'insert': InsertDocumentContentSerializer,
         'delete': DeleteDocumentContentSerializer,
         'split-block': SplitContentBlockSerializer,
+        'set-block-type': SetContentBlockTypeSerializer,
         # This exists solely for error catching/handling
         '': _BaseDocumentUpdateContentSerializer,
     }
@@ -53,6 +55,7 @@ class DocumentConsumer(AsyncWebsocketConsumer):
 
             if type == 'update-document-content':
                 serializers = await self.document_update_type(body)
+                print(serializers)
                 for serializer in serializers:
                     await self.update_document_content(serializer)
                 await self.send(text_data)
@@ -89,6 +92,8 @@ class DocumentConsumer(AsyncWebsocketConsumer):
                     update.get('type', ''))(data=update)
                 if serializer.is_valid():
                     serializers.append(serializer)
+                else:
+                    await self.raise_error(serializer.errors)
         else:
             await self.raise_error(serializer.errors)
         return serializers
