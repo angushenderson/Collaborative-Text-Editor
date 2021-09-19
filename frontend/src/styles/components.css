@@ -334,6 +334,11 @@ input:-webkit-autofill {
   flex: 1 1 auto;
 }
 
+/* Header */
+.header-background {
+  background: var(--background-color);
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 15px;

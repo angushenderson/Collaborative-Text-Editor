@@ -3,11 +3,31 @@ import { Editor, EditorState, RichUtils, getDefaultKeyBinding, Modifier, Selecti
 import _, { update } from 'lodash';
 import isPrintableKeyEvent from 'is-printable-key-event';
 import 'draft-js/dist/Draft.css';
+import SmallButton from './input/small_button';
 import isNull from '../utils/isNull';
 
 
 // Characters which are used to break up words - used for backspace-word operations
 const WORD_BREAK_CHARACTERS = [' ', '(', ')', '{', '}', '[', ']', '"', '.', ',', '@', '/', '!', '£', '$', '%', '^', '&', '*', '\\', '?', '<', '>', '|', '`', ':', ';', '#', '~', '-', '+', '='];
+
+const BLOCK_TYPES = [
+  ['H1', 'header-one'],
+  ['H2', 'header-two'],
+  ['H3', 'header-three'],
+  ['H4', 'header-four'],
+  ['H5', 'header-five'],
+  ['H6', 'header-six'],
+  ['Blockquote', 'blockquote'],
+  ['UL', 'unordered-list-item'],
+  ['OL', 'ordered-list-item'],
+  ['Code Block', 'code-block'],
+];
+
+const INLINE_STYLES = [
+  ['Bold', 'BOLD'],
+  ['Italic', 'ITALIC'],
+  ['Underline', 'UNDERLINE'],
+];
 
 export default function TextEditor(props) {
   // Text editor using draft.js
@@ -116,15 +136,81 @@ export default function TextEditor(props) {
     return 'not-handled';
   }
 
+  function getKeyRange() {
+    // Get a range of keys between current selection
+    const selection = editorState.getSelection();
+    var key = selection.getAnchorKey();
+    var keys = [key];
+    while (key !== selection.getFocusKey()) {
+      key = editorState.getCurrentContent().getKeyAfter(key);
+      console.log(key);
+      keys.push(key);
+    } if (key !== selection.getFocusKey()) {
+      keys.push(selection.getFocusKey());
+    }
+
+    return keys;
+  }
+
+  function handleBlockTypeChange(newType) {
+    const newState = RichUtils.toggleBlockType(editorState, newType);
+    setEditorState(newState);
+
+    var newContentBlocks = [];
+    getKeyRange().forEach(item => {
+      newContentBlocks.push({
+        type: 'set-block-type',
+        block: item,
+        newBlockType: newState.getCurrentContent().getBlockForKey(item).getType(),
+      })
+    });
+  
+    setUpdatedContentStack([...updatedContentStack, ...newContentBlocks]);
+  }
 
   function handleEditorStyleChange(newStyle) {
     // Function to handle changing of the editor style from a button press
     // newStyle is the new style the editor should represent in accordance with draft.js
-    setEditorState(RichUtils.toggleInlineStyle(editorState, newStyle));
+    const newState = RichUtils.toggleInlineStyle(editorState, newStyle);
+    setEditorState(newState);
+  }
+
+  function getSelectionBlockStyle() {
+    // Returns undefined if selection spans multiple content blocks
+    if (editorState.getSelection().getAnchorKey() !== editorState.getSelection().getFocusKey()) {
+      return undefined;
+    } else {
+      return editorState.getCurrentContent().getBlockForKey(editorState.getSelection().getAnchorKey()).getType();
+    }
   }
 
   return <div className='editor-container'>
-    <button onClick={() => handleEditorStyleChange('BOLD')}>Bold</button>
+    <div style={{marginBottom: '12px'}}>
+      <div style={{display: 'inline-flex', flexWrap: 'wrap'}}>
+        {  BLOCK_TYPES.map(item => {
+          return <div style={{marginRight: '8px'}} key={item[0]}>
+            <SmallButton
+              text={item[0]}
+              onClick={() => handleBlockTypeChange(item[1])}
+              primary={getSelectionBlockStyle() === item[1]}
+            />
+          </div>
+        })}
+      </div>
+
+      <div style={{display: 'inline-flex', flexWrap: 'wrap'}}>
+        {  INLINE_STYLES.map(item => {
+          return <div style={{marginRight: '8px'}} key={item[0]}>
+            <SmallButton
+              text={item[0]}
+              onClick={() => handleEditorStyleChange(item[1])}
+              // primary={getSelectionBlockStyle() === item[1]}
+            />
+          </div>
+        })}
+      </div>
+    </div>
+
     <Editor
       editorState={editorState}
       handleKeyCommand={handleKeyCommand}
