@@ -228,7 +228,7 @@ export default function EditorPage(props) {
         </div>
       </Sidebar>}
       
-      <div style={{marginLeft: `${sidebarContentMargin !== 0 ? sidebarContentMargin: 0}px`}}>
+      <div style={{marginLeft: `${sidebarContentMargin !== 0 ? sidebarContentMargin: 0}px`, position: 'sticky', top: '0px', background: '#101010', zIndex: '10', height: '64px'}}>
         <Header documentTitle={titleEditorState !== null ? titleEditorState.getCurrentContent().getPlainText() : ''} sidebarOpen={sidebarContentMargin!==0} toggleSidebar={() => setSidebarContentMargin(270)} />
       </div>
 

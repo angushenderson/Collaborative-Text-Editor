@@ -12,23 +12,22 @@ class InlineStyleSerializer(ModelSerializer):
 
 
 class ContentBlockSerializer(ModelSerializer):
-    inline_styles = InlineStyleSerializer(many=True)
+    styles = InlineStyleSerializer(many=True)
 
     class Meta:
         model = ContentBlock
-        fields = ('key', 'text', 'type', 'inline_styles')
+        fields = ('key', 'text', 'type', 'styles')
 
     def to_internal_value(self, data):
         """ Function is run pre validation """
         if 'inlineStyleRanges' in data:
-            data['inline_styles'] = data.pop('inlineStyleRanges')
+            data['styles'] = data.pop('inlineStyleRanges')
 
         return super().to_internal_value(data)
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
-        representation['inlineStyleRanges'] = representation.pop(
-            'inline_styles')
+        representation['inlineStyleRanges'] = representation.pop('styles')
         # Add extra paramters for Draft.js editor
         representation.update({'data': {}, 'depth': 0, 'entityRanges': []})
         return representation
@@ -108,12 +107,10 @@ class UpdateDocumentTitleSerializer(serializers.Serializer):
 
 class UpdateDocumentContentSerializer(serializers.Serializer):
     """ Serializer to handle a document update """
-    # type = serializers.ChoiceField(required=True, choices=[
-    #                                ('insert',) * 2, ('delete',) * 2])
     data = serializers.ListField(required=True)
 
 
-class _BaseDocumentUpdateContentSerializer(serializers.Serializer):
+class BaseDocumentUpdateContentSerializer(serializers.Serializer):
     """ Base serializer class to be inherited by serializers which modify the content of a document """
     block = serializers.CharField(required=True, min_length=5, max_length=5)
     position = serializers.IntegerField(required=True, min_value=0)
@@ -121,10 +118,10 @@ class _BaseDocumentUpdateContentSerializer(serializers.Serializer):
     @abstractmethod
     def save(self, instance: Document, **kwargs) -> None:
         """ Define the behaviour for updating document content """
-        pass
+        return instance.blocks.get(key=self.validated_data['block'])
 
 
-class InsertDocumentContentSerializer(_BaseDocumentUpdateContentSerializer):
+class InsertDocumentContentSerializer(BaseDocumentUpdateContentSerializer):
     """ Serializer class to handle inserting text into a document's content """
     text = serializers.CharField(required=True, trim_whitespace=False)
 
@@ -137,20 +134,27 @@ class InsertDocumentContentSerializer(_BaseDocumentUpdateContentSerializer):
         block.save(update_fields=['text'])
 
 
-class DeleteDocumentContentSerializer(_BaseDocumentUpdateContentSerializer):
-    """ Serializer class to handle deleting text from a document's content """
+class DeleteDocumentContentSerializer(BaseDocumentUpdateContentSerializer):
+    """
+    Serializer class to handle deleting text from a document's conten
+    If position is -1, the given content block will be deleted
+    """
+    position = serializers.IntegerField(required=True, min_value=-1)
     offset = serializers.IntegerField(required=True, min_value=0)
 
     def save(self, instance: Document, **kwargs) -> None:
-        block: ContentBlock = instance.blocks.get_or_create(
-            key=self.validated_data['block'], defaults={'index': 0})[0]
-        block.text = block.text[:self.validated_data['position']] + \
-            block.text[self.validated_data['position'] +
-                       self.validated_data['offset']:]
-        block.save(update_fields=['text'])
+        block: ContentBlock = instance.blocks.get(
+            key=self.validated_data['block'])
+        if self.validated_data['position'] == -1:
+            block.delete()
+        else:
+            block.text = block.text[:self.validated_data['position']] + \
+                block.text[self.validated_data['position'] +
+                           self.validated_data['offset']:]
+            block.save(update_fields=['text'])
 
 
-class SplitContentBlockSerializer(_BaseDocumentUpdateContentSerializer):
+class SplitContentBlockSerializer(BaseDocumentUpdateContentSerializer):
     newBlock = serializers.CharField(
         required=True, min_length=5, max_length=5)
 
@@ -171,7 +175,7 @@ class SplitContentBlockSerializer(_BaseDocumentUpdateContentSerializer):
             key=self.validated_data['newBlock'], text=overflow_text, index=block.index + 1)
 
 
-class SetContentBlockTypeSerializer(_BaseDocumentUpdateContentSerializer):
+class SetContentBlockTypeSerializer(BaseDocumentUpdateContentSerializer):
     """ Serializer for changing the type of a content block """
     newBlockType = serializers.CharField(required=True)
     position = None
@@ -179,6 +183,20 @@ class SetContentBlockTypeSerializer(_BaseDocumentUpdateContentSerializer):
     def save(self, instance: Document, **kwargs):
         block: ContentBlock = instance.blocks.get(
             key=self.validated_data['block'])
-        print(self.validated_data['newBlockType'])
         block.type = self.validated_data['newBlockType']
         block.save(update_fields=['type'])
+
+
+class SetInlineStyleSerializer(BaseDocumentUpdateContentSerializer):
+    """ Serializers for updating inline styles """
+    offset = serializers.IntegerField(required=True, min_value=0)
+    style = serializers.CharField(required=True)
+
+    def save(self, instance: Document, **kwargs):
+        # TODO Implement this super method throughout all BaseDocumentUpdateContentSerializer classes
+        # TODO Will need to update inline styles when inserting or deleting text as well
+        block: ContentBlock = super().save(instance, **kwargs)
+
+        block.styles.create(
+            length=self.validated_data['offset'], offset=self.validated_data['position'], style=self.validated_data['style'])
+        print('Styles: ', block.styles.all())

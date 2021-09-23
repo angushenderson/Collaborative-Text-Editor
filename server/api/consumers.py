@@ -3,20 +3,12 @@ from django.core.exceptions import ObjectDoesNotExist
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from api.models import Document, ContentBlock, InlineStyle
-from api.serializers import (
-    InsertDocumentContentSerializer,
-    DeleteDocumentContentSerializer,
-    WebSocketMessageSerializer,
-    _BaseDocumentUpdateContentSerializer,
-    UpdateDocumentContentSerializer,
-    UpdateDocumentTitleSerializer,
-    SplitContentBlockSerializer,
-    SetContentBlockTypeSerializer
-)
-
+from api.serializers import *
 
 # TODO: Once REDIS is set up, look at loading document object and all children into this to reduce lookup times in main database
 #        then drip feed updates back in every few minutes and leave redis when all websocket's close. Make super fast!!
+
+
 class DocumentConsumer(AsyncWebsocketConsumer):
     """
     Consumer to handle collaborative document editing, along with
@@ -27,8 +19,9 @@ class DocumentConsumer(AsyncWebsocketConsumer):
         'delete': DeleteDocumentContentSerializer,
         'split-block': SplitContentBlockSerializer,
         'set-block-type': SetContentBlockTypeSerializer,
+        'set-inline-style': SetInlineStyleSerializer,
         # This exists solely for error catching/handling
-        '': _BaseDocumentUpdateContentSerializer,
+        '': BaseDocumentUpdateContentSerializer,
     }
 
     async def connect(self) -> None:
@@ -37,7 +30,7 @@ class DocumentConsumer(AsyncWebsocketConsumer):
         try:
             self.document: Document = await self.get_document(self.document_id)
             await self.accept()
-            print('CONNECTED')
+            print(f'CONNECTED --> {self.scope["user"]}')
         except ObjectDoesNotExist:
             pass
 
@@ -55,7 +48,6 @@ class DocumentConsumer(AsyncWebsocketConsumer):
 
             if type == 'update-document-content':
                 serializers = await self.document_update_type(body)
-                print(serializers)
                 for serializer in serializers:
                     await self.update_document_content(serializer)
                 await self.send(text_data)
@@ -79,7 +71,7 @@ class DocumentConsumer(AsyncWebsocketConsumer):
         # self.close(code=1002)
         self.send(json.dumps(errors))
 
-    async def document_update_type(self, data: dict) -> list[_BaseDocumentUpdateContentSerializer]:
+    async def document_update_type(self, data: dict) -> list[BaseDocumentUpdateContentSerializer]:
         """ Convert update message to specific update type serializer. If invalid, None is returned """
         # Generic parent serializer
         serializer = UpdateDocumentContentSerializer(data=data)
@@ -108,6 +100,6 @@ class DocumentConsumer(AsyncWebsocketConsumer):
         serializer.save(self.document)
 
     @database_sync_to_async
-    def update_document_content(self, serializer: _BaseDocumentUpdateContentSerializer) -> None:
+    def update_document_content(self, serializer: BaseDocumentUpdateContentSerializer) -> None:
         """ Method to update the content of a document. """
         serializer.save(self.document)

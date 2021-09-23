@@ -29,6 +29,7 @@ export default function Sidebar({width, setSidebarContentMargin, children}) {
     style={{
       transform: `translatex(${xPosition}px)`,
       width: width,
+      zIndex: '20',
       // paddingTop: '60px',
     }}
   >

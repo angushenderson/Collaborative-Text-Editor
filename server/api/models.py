@@ -70,7 +70,7 @@ class ContentBlock(models.Model):
 class InlineStyle(models.Model):
     """ Model representing a single inline style as part of a series in a ContentBlock """
     content_block = models.ForeignKey(
-        ContentBlock, related_name='inline_styles', on_delete=models.CASCADE)
+        ContentBlock, related_name='styles', on_delete=models.CASCADE)
     length = models.PositiveIntegerField()
     offset = models.PositiveIntegerField()
     style = models.CharField(max_length=10)

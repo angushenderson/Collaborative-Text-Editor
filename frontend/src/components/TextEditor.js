@@ -172,7 +172,23 @@ export default function TextEditor(props) {
     // Function to handle changing of the editor style from a button press
     // newStyle is the new style the editor should represent in accordance with draft.js
     const newState = RichUtils.toggleInlineStyle(editorState, newStyle);
+    var newStyleRange = [];
+    getKeyRange().forEach(item => {
+      const position = newState.getSelection().getAnchorKey() === item ? newState.getSelection().getAnchorOffset() : 0;
+      // -1 means selection to the end of the block
+      const offset = newState.getSelection().getFocusKey() === item ? newState.getSelection().getFocusOffset() : -1;
+
+      newStyleRange.push({
+        type: 'set-inline-style',
+        block: item,
+        position: position,
+        offset: offset,
+        style: newStyle,
+      });
+    });
+
     setEditorState(newState);
+    setUpdatedContentStack([...updatedContentStack, ...newStyleRange]);
   }
 
   function getSelectionBlockStyle() {
@@ -185,7 +201,7 @@ export default function TextEditor(props) {
   }
 
   return <div className='editor-container'>
-    <div style={{marginBottom: '12px'}}>
+    <div className='editor-control-panel' style={{marginBottom: '12px', position: 'sticky', top: '64px', background: '#101010', zIndex: '10'}}>
       <div style={{display: 'inline-flex', flexWrap: 'wrap'}}>
         {  BLOCK_TYPES.map(item => {
           return <div style={{marginRight: '8px'}} key={item[0]}>
@@ -196,10 +212,8 @@ export default function TextEditor(props) {
             />
           </div>
         })}
-      </div>
 
-      <div style={{display: 'inline-flex', flexWrap: 'wrap'}}>
-        {  INLINE_STYLES.map(item => {
+        {/* {  INLINE_STYLES.map(item => {
           return <div style={{marginRight: '8px'}} key={item[0]}>
             <SmallButton
               text={item[0]}
@@ -207,7 +221,7 @@ export default function TextEditor(props) {
               // primary={getSelectionBlockStyle() === item[1]}
             />
           </div>
-        })}
+        })} */}
       </div>
     </div>
 

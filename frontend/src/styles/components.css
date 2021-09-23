@@ -296,7 +296,13 @@ input:-webkit-autofill {
 .editor-container {
   max-width: 900px;
   width: 100%;
+  box-sizing: border-box;
   margin: 0 auto;
+  padding: 12px 18px;
+}
+
+.editor-control-panel {
+  /* box-shadow: 0 30px 40px rgba(0, 0, 0, 0.1); */
 }
 
 /* Sidebar */
