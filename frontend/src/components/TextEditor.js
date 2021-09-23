@@ -47,43 +47,67 @@ export default function TextEditor(props) {
     // TODO Implement handling of highlighted text
 
     if (['backspace', 'backspace-word'].includes(keyBinding)) {
-      // Text has been deleted
-      var words = editorState.getCurrentContent().getBlockForKey(editorState.getSelection().getAnchorKey()).getText();
-      words = words.slice(0,editorState.getSelection().getAnchorOffset());
-      
-      // Calculate length of last word to remove
-      var i = 0;
-      // Handle break word characters
-      while (WORD_BREAK_CHARACTERS.includes(words[words.length-1-i])) {
-        i++;
-      }
-      // Handle counting word lengths
-      while (![...WORD_BREAK_CHARACTERS, undefined].includes(words[words.length-1-i])) {
-        i++;
-      }
+      // Cursor text has been deleted
+      getKeyRange().forEach(key => {
+        const selection = editorState.getSelection();
+        // Offsets in current block
+        var anchor = selection.getAnchorKey() === key ? selection.getAnchorOffset() : 0;
+        var focus = selection.getFocusKey() === key ? selection.getFocusOffset() : editorState.getCurrentContent().getBlockForKey(key).getText().length;
 
-      const position = keyBinding === 'backspace-word' ? words.length - i : editorState.getSelection().getAnchorOffset()-1;
-      const offset = keyBinding === 'backspace-word' ?  i : 1;
+        if (key === selection.getAnchorKey() && key === selection.getFocusKey() && anchor === focus) {
+          // No text highlighted
+          var words = editorState.getCurrentContent().getBlockForKey(key).getText();
+          words = words.slice(0, anchor);
+          
+          // Calculate length of last word to remove
+          var i = 0;
+          // Handle break word characters
+          while (WORD_BREAK_CHARACTERS.includes(words[words.length-1-i])) {
+            i++;
+          }
+          // Handle counting word lengths
+          while (![...WORD_BREAK_CHARACTERS, undefined].includes(words[words.length-1-i])) {
+            i++;
+          }
 
-      if (keyBinding === 'backspace-word') {
-        // Update editor state
-        const selection = new SelectionState({
-          anchorKey: editorState.getSelection().getAnchorKey(),
-          focusKey: editorState.getSelection().getFocusKey(),
-          anchorOffset: editorState.getSelection().getAnchorOffset()-i,
-          focusOffset: editorState.getSelection().getAnchorOffset(),
-          isBackward: false,
-          hasFocus: editorState.getSelection().getHasFocus(),
+          anchor = keyBinding === 'backspace-word' ? words.length - i : anchor-1;
+          focus = keyBinding === 'backspace-word' ?  i : 1;
+
+          if (keyBinding === 'backspace-word') {
+            // Update editor state
+            const new_selection = new SelectionState({
+              anchorKey: selection.getAnchorKey(),
+              focusKey: selection.getFocusKey(),
+              anchorOffset: selection.getAnchorOffset()-i,
+              focusOffset: selection.getAnchorOffset(),
+              isBackward: false,
+              hasFocus: selection.getHasFocus(),
+            });
+            const newState = Modifier.removeRange(editorState.getCurrentContent(), new_selection, 'backward');
+            setEditorState(EditorState.push(editorState, newState, 'remove-range'));
+          }
+        } else if (key === selection.getAnchorKey() && key === selection.getFocusKey()) {
+          // Highlighted text in single block has been deleted
+          anchor = selection.getAnchorOffset();
+          focus = selection.getFocusOffset() - selection.getAnchorOffset();
+        } else {
+          // Highlighted text across multiple blocks has been deleted
+          // NOTE Need to take into account reverse selections: they're a bitch lol
+          const stop = selection.isBackward ? selection.getAnchorKey() : selection.getFocusKey();
+          const stopOffset = selection.isBackward ? selection.getAnchorOffset() : selection.getFocusOffset();
+          focus = stop === key ? stopOffset : editorState.getCurrentContent().getBlockForKey(key).getText().length;
+
+          const start = selection.isBackward ? selection.getFocusKey() : selection.getAnchorKey();
+          const startOffset = selection.isBackward ? selection.getFocusOffset() : selection.getAnchorOffset();
+          anchor = start === key ? startOffset : -1;
+        }
+
+        newContentBlocks.push({
+          type: 'delete',
+          block: key,
+          position: anchor,
+          offset: focus,
         });
-        const newState = Modifier.removeRange(editorState.getCurrentContent(), selection, 'backward');
-        setEditorState(EditorState.push(editorState, newState, 'remove-range'));
-      }
-
-      newContentBlocks.push({
-        type: 'delete',
-        block: editorState.getSelection().getAnchorKey(),
-        position: position,
-        offset: offset,
       });
     } else if (keyBinding === 'split-block') {
       // Enter key has been pressed
@@ -122,7 +146,6 @@ export default function TextEditor(props) {
   }
 
   function handleKeyCommand (command, _) {
-    // Dont bother with this function :- handle it all in the above function instead
     // This function is run SECOND
     if (command === 'backspace') {
 
@@ -139,15 +162,20 @@ export default function TextEditor(props) {
   function getKeyRange() {
     // Get a range of keys between current selection
     const selection = editorState.getSelection();
-    var key = selection.getAnchorKey();
+    const stop = selection.isBackward ? selection.getAnchorKey() : selection.getFocusKey();
+
+    var key = selection.isBackward ? selection.getFocusKey() : selection.getAnchorKey();
     var keys = [key];
-    while (key !== selection.getFocusKey()) {
+    while (key !== stop && key !== undefined) {
       key = editorState.getCurrentContent().getKeyAfter(key);
-      console.log(key);
       keys.push(key);
-    } if (key !== selection.getFocusKey()) {
-      keys.push(selection.getFocusKey());
+      console.log(keys);
+    } if (keys.at(-1) === undefined) {
+      keys.pop();
+    } if (key !== stop) {
+      keys.push(stop);
     }
+    console.log("keys", keys);
 
     return keys;
   }
