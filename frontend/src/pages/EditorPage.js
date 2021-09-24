@@ -51,7 +51,7 @@ export default function EditorPage(props) {
 
   const sendUpdatedTitle = () => {
     // Function to send text in title text box to websocket if text has changed
-    if (titleEditorState !== null) {
+    if (titleEditorState !== null && webSocket.current !== null) {
       // Only send request if connection is open
       if (webSocket.current.readyState === WebSocket.OPEN) {
         const text = titleEditorState.getCurrentContent().getPlainText();
