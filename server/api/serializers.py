@@ -120,6 +120,24 @@ class BaseDocumentUpdateContentSerializer(serializers.Serializer):
         """ Define the behaviour for updating document content """
         return instance.blocks.get(key=self.validated_data['block'])
 
+    def get_block_before(self, block: ContentBlock, instance: Document) -> ContentBlock:
+        """
+        Get the ContentBlock object which comes before `block` in the instance Document
+        None will be returned if it's the last block in the document
+        """
+        queryset = instance.blocks.filter(index__lt=block.index)
+        print(queryset)
+        print([b.index for b in instance.blocks.all()])
+        return queryset.reverse()[0] if len(queryset) > 0 else None
+
+    def get_block_after(self, block: ContentBlock, instance: Document) -> ContentBlock:
+        """
+        Get the ContentBlock object which comes after `block` in the instance Document
+        None will be returned if it's the last block in the document
+        """
+        queryset = instance.blocks.filter(index__gt=block.index)
+        return queryset[0] if len(queryset) > 0 else None
+
 
 class InsertDocumentContentSerializer(BaseDocumentUpdateContentSerializer):
     """ Serializer class to handle inserting text into a document's content """
@@ -146,7 +164,12 @@ class DeleteDocumentContentSerializer(BaseDocumentUpdateContentSerializer):
         block: ContentBlock = instance.blocks.get(
             key=self.validated_data['block'])
         if self.validated_data['position'] == -1:
-            block.delete()
+            if (block_before := self.get_block_before(block, instance)):
+                print(block_before)
+                block_before.text += block.text[self.validated_data['position'] +
+                                                self.validated_data['offset']:]
+                block_before.save(update_fields=['text'])
+                block.delete()
         else:
             block.text = block.text[:self.validated_data['position']] + \
                 block.text[self.validated_data['position'] +

@@ -70,8 +70,14 @@ export default function TextEditor(props) {
             i++;
           }
 
-          anchor = keyBinding === 'backspace-word' ? words.length - i : anchor-1;
-          focus = keyBinding === 'backspace-word' ?  i : 1;
+          // TODO Need to fix bug where backspace at anchor of 0 deletes the entire line (delete key style)
+          if (editorState.getCurrentContent().getBlocksAsArray()[0].getKey() !== selection.getAnchorKey()) {
+            anchor = keyBinding === 'backspace-word' ? words.length - i : anchor-1;
+            focus = keyBinding === 'backspace-word' ?  i : 1;
+          } else {
+            // Backspace pressed on block on first line
+            return;
+          }
 
           if (keyBinding === 'backspace-word') {
             // Update editor state
