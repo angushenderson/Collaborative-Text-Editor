@@ -179,7 +179,20 @@ export default function EditorPage(props) {
       })
     });
     setTitleEditorState(() => EditorState.createEmpty());
-    setDocumentEditorState(() => EditorState.createEmpty());
+    const state = EditorState.createEmpty();
+    setDocumentEditorState(state);
+    console.log({
+      type: 'insert',
+      block: state.getCurrentContent().getBlocksAsArray()[0].getKey(),
+      position: 0,
+      text: '',
+    });
+    setUpdatedContentStack([{
+      type: 'insert',
+      block: state.getCurrentContent().getBlocksAsArray()[0].getKey(),
+      position: 0,
+      text: '',
+    }]);
   }; 
 
   useInterval(() => {

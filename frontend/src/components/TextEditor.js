@@ -71,12 +71,13 @@ export default function TextEditor(props) {
           }
 
           // TODO Need to fix bug where backspace at anchor of 0 deletes the entire line (delete key style)
-          if (editorState.getCurrentContent().getBlocksAsArray()[0].getKey() !== selection.getAnchorKey()) {
-            anchor = keyBinding === 'backspace-word' ? words.length - i : anchor-1;
-            focus = keyBinding === 'backspace-word' ?  i : 1;
-          } else {
+          console.log(editorState.getCurrentContent().getBlocksAsArray()[0].getKey(), selection.getAnchorKey(), anchor, focus);
+          if (editorState.getCurrentContent().getBlocksAsArray()[0].getKey() === selection.getAnchorKey() && anchor < 1 && focus < 1) {
             // Backspace pressed on block on first line
             return;
+          } else {
+            anchor = keyBinding === 'backspace-word' ? words.length - i : anchor-1;
+            focus = keyBinding === 'backspace-word' ?  i : 1;
           }
 
           if (keyBinding === 'backspace-word') {
@@ -94,8 +95,8 @@ export default function TextEditor(props) {
           }
         } else if (key === selection.getAnchorKey() && key === selection.getFocusKey()) {
           // Highlighted text in single block has been deleted
-          anchor = selection.getAnchorOffset();
-          focus = selection.getFocusOffset() - selection.getAnchorOffset();
+          anchor = selection.isBackward ? selection.getFocusOffset() : selection.getAnchorOffset();
+          focus = selection.isBackward ? selection.getAnchorOffset() - selection.getFocusOffset() : selection.getFocusOffset() - selection.getAnchorOffset();
         } else {
           // Highlighted text across multiple blocks has been deleted
           // NOTE Need to take into account reverse selections: they're a bitch lol

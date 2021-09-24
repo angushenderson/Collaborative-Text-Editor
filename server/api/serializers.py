@@ -141,11 +141,13 @@ class BaseDocumentUpdateContentSerializer(serializers.Serializer):
 
 class InsertDocumentContentSerializer(BaseDocumentUpdateContentSerializer):
     """ Serializer class to handle inserting text into a document's content """
-    text = serializers.CharField(required=True, trim_whitespace=False)
+    text = serializers.CharField(
+        required=True, trim_whitespace=False, allow_blank=True)
 
     def save(self, instance: Document, **kwargs) -> None:
         block: ContentBlock = instance.blocks.get_or_create(
             key=self.validated_data['block'], defaults={'index': 0})[0]
+        print(block)
         block.text = block.text[:self.validated_data['position']] + \
             self.validated_data['text'] + \
             block.text[self.validated_data['position']:]
