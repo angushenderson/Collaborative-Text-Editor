@@ -1,8 +1,12 @@
 from abc import abstractmethod
+from uuid import uuid4
+from datetime import datetime
 from django.conf import settings
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
 from api.models import Document, DocumentCollaborator, ContentBlock, InlineStyle
+from .validators import ValidAccessToken
+from .auth import is_token_valid
 
 
 class InlineStyleSerializer(ModelSerializer):
@@ -60,12 +64,29 @@ class DocumentSerializer(ModelSerializer):
         model = Document
         fields = ('id', 'title', 'blocks')
 
+    def generate_authentication_ticket(self) -> str:
+        """ Generate an authentication ticket and store in current user with experation time """
+        authentication_ticket = str(uuid4())
+
+        self.context['user'].authentication_ticket = authentication_ticket
+        self.context['user'].authentication_ticket_expires_at = datetime.now(
+        ) + settings.AUTHENTICATION_TICKET_EXPIRE_TIME_DELTA
+        self.context['user'].save(
+            update_fields=['authentication_ticket', 'authentication_ticket_expires_at'])
+
+        return authentication_ticket
+
     def to_representation(self, instance):
         representation = super().to_representation(instance)
         representation['editor'] = {
             'blocks': representation.pop('blocks'),
             'entityMap': {},
         }
+
+        if 'user' in self.context:
+            representation['authentication_ticket'] = self.generate_authentication_ticket(
+            )
+
         return representation
 
     def create(self, validated_data) -> Document:
@@ -93,7 +114,12 @@ class DocumentSerializer(ModelSerializer):
 class WebSocketMessageSerializer(serializers.Serializer):
     """ Simple serializer to check the basic validity of a websocket message :- only checks if a type exist """
     type = serializers.CharField(required=True)
+    access_token = serializers.CharField(required=True)
     body = serializers.DictField(required=True)
+
+    def validate_access_token(self, value):
+        if not is_token_valid(value, self.context['user']):
+            raise serializers.ValidationError('Access token is invalid.')
 
 
 class UpdateDocumentTitleSerializer(serializers.Serializer):
@@ -126,8 +152,6 @@ class BaseDocumentUpdateContentSerializer(serializers.Serializer):
         None will be returned if it's the last block in the document
         """
         queryset = instance.blocks.filter(index__lt=block.index)
-        print(queryset)
-        print([b.index for b in instance.blocks.all()])
         return queryset.reverse()[0] if len(queryset) > 0 else None
 
     def get_block_after(self, block: ContentBlock, instance: Document) -> ContentBlock:
@@ -162,7 +186,6 @@ class DeleteDocumentContentSerializer(BaseDocumentUpdateContentSerializer):
     offset = serializers.IntegerField(required=True, min_value=0)
 
     def save(self, instance: Document, **kwargs) -> None:
-        print('INSTANCE: ', instance)
         block: ContentBlock = instance.blocks.get(
             key=self.validated_data['block'])
         if self.validated_data['position'] == -1:

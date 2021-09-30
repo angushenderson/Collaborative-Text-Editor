@@ -4,6 +4,7 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from api.models import Document, ContentBlock, InlineStyle
 from api.serializers import *
+from authentication.models import User
 
 # TODO: Once REDIS is set up, look at loading document object and all children into this to reduce lookup times in main database
 #        then drip feed updates back in every few minutes and leave redis when all websocket's close. Make super fast!!
@@ -29,8 +30,9 @@ class DocumentConsumer(AsyncWebsocketConsumer):
         self.document_id: str = self.scope['url_route']['kwargs']['document_id']
         try:
             self.document: Document = await self.get_document(self.document_id)
-            await self.accept()
-            print(f'CONNECTED --> {self.scope["user"]}')
+            if self.is_user_contributor(self.scope['user'], self.document):
+                await self.accept()
+                print(f'CONNECTED --> {self.scope["user"]}')
         except ObjectDoesNotExist:
             pass
 
@@ -40,7 +42,9 @@ class DocumentConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data) -> None:
         """ Run when server websocket receives data from client """
-        serializer = WebSocketMessageSerializer(data=json.loads(text_data))
+        # TODO check auth token
+        # TODO improve errors returned via websocket
+        serializer = await self.load_message_serializer(text_data)
 
         if serializer.is_valid():
             type: str = serializer.validated_data['type']
@@ -91,8 +95,16 @@ class DocumentConsumer(AsyncWebsocketConsumer):
         return serializers
 
     @database_sync_to_async
+    def load_message_serializer(self, text_data) -> WebSocketMessageSerializer:
+        return WebSocketMessageSerializer(data=json.loads(text_data), context={'user': self.scope['user']})
+
+    @database_sync_to_async
     def get_document(self, id: str) -> Document:
         return Document.objects.get(id=id)
+
+    @database_sync_to_async
+    def is_user_contributor(self, user: User, document: Document) -> bool:
+        return user in document.collaborators.all()
 
     @database_sync_to_async
     def update_document_title(self, serializer: UpdateDocumentTitleSerializer) -> None:

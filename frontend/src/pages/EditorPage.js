@@ -27,6 +27,7 @@ export default function EditorPage(props) {
   // Document
   const [documents, setDocuments] = useState(null);
   const [currentDocumentId, setCurrentDocumentId] = useState(null);
+  const [authenticationTicket, setAuthenticationTicket] = useState(null);
 
   // State for managing title input box
   const [titleEditorState, setTitleEditorState] = useState(null);
@@ -59,6 +60,7 @@ export default function EditorPage(props) {
         if (previousTitle !== text) {
           webSocket.current.send(JSON.stringify({
             'type': 'update-document-title',
+            'access_token': user.Authorization.access,
             'body': {
               'title': text,
             },
@@ -86,13 +88,15 @@ export default function EditorPage(props) {
 
   const sendUpdatedDocument = () => {
     // Function to send the text which has been updated to server via open websocket
-    if (documentEditorState !== null) {
+    if (documentEditorState !== null && webSocket.current !== null) {
       if (webSocket.current.readyState === WebSocket.OPEN) {
         if (!isNull(updatedContentStack)) {
           // Only send request if content has been updated
           console.log(updatedContentStack);
+          console.log(user);
           webSocket.current.send(JSON.stringify({
             'type': 'update-document-content',
+            'access_token': user.Authorization.access,
             'body': {
               'data': updatedContentStack,
             },
@@ -144,11 +148,13 @@ export default function EditorPage(props) {
         return undefined;
       }).then((data) => {
         if (data !== undefined) {
-          setUpdatedContentStack([]);
           setTitleEditorState(() => EditorState.createWithContent(ContentState.createFromText(data.title)));
           setDocumentEditorState(() => EditorState.createWithContent(convertFromRaw(data.editor)));
-          setPreviousTitle(data.title);
           setCurrentDocumentId(data.id);
+          console.log(data);
+          setAuthenticationTicket(data.authentication_ticket);
+          setPreviousTitle(data.title);
+          setUpdatedContentStack([]);
           console.log(data.editor);
           history.push(`/editor/${data.id}`);
         }
@@ -193,7 +199,7 @@ export default function EditorPage(props) {
       position: 0,
       text: '',
     }]);
-  }; 
+  };
 
   useInterval(() => {
     // Start a timer -> to prevent sending a request on every keypress
@@ -206,9 +212,8 @@ export default function EditorPage(props) {
   useEffect(() => {
     // Web socket setup
     // Using .current to access value stored in reference hook
-    console.log(currentDocumentId);
-    if (currentDocumentId !== null) {
-      webSocket.current = new WebSocket(`ws://127.0.0.1:8000/ws/document/${currentDocumentId}/`);
+    if (currentDocumentId !== null && authenticationTicket !== null) {
+      webSocket.current = new WebSocket(`ws://127.0.0.1:8000/ws/document/${currentDocumentId}/?${authenticationTicket}`);
 
       // Function to run when data received
       webSocket.current.onmessage = (message) => {
@@ -217,7 +222,7 @@ export default function EditorPage(props) {
 
       return () => webSocket.current.close();
     }
-  }, [currentDocumentId]);
+  }, [currentDocumentId, authenticationTicket]);
 
   useEffect(() => {
     // Check the URL document id

@@ -181,8 +181,8 @@ export default function TextEditor(props) {
 
   function handleKeyCommand (command, _) {
     // This function is run SECOND
-    if (command === 'backspace') {
-
+    if (command === 'handled') {
+      return 'handled';
     } else if (command === 'backspace-word') {
       // Custom backspace word behaviour in above function
       return 'handled';
