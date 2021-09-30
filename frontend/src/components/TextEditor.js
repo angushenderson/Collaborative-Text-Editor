@@ -42,6 +42,7 @@ export default function TextEditor(props) {
   function keyBindingFn(e) {
     // This function is run FIRST
     const keyBinding = getDefaultKeyBinding(e);
+    const selection = editorState.getSelection();
     var newContentBlocks = [];
 
     // TODO Implement handling of highlighted text
@@ -49,7 +50,6 @@ export default function TextEditor(props) {
     if (['backspace', 'backspace-word'].includes(keyBinding)) {
       // Cursor text has been deleted
       getKeyRange().forEach(key => {
-        const selection = editorState.getSelection();
         // Offsets in current block
         var anchor = selection.getAnchorKey() === key ? selection.getAnchorOffset() : 0;
         var focus = selection.getFocusKey() === key ? selection.getFocusOffset() : editorState.getCurrentContent().getBlockForKey(key).getText().length;
@@ -107,6 +107,10 @@ export default function TextEditor(props) {
           const start = selection.isBackward ? selection.getFocusKey() : selection.getAnchorKey();
           const startOffset = selection.isBackward ? selection.getFocusOffset() : selection.getAnchorOffset();
           anchor = start === key ? startOffset : -1;
+
+          if (anchor === -1) {
+            focus++;
+          }
         }
 
         newContentBlocks.push({
@@ -118,14 +122,37 @@ export default function TextEditor(props) {
       });
     } else if (keyBinding === 'split-block') {
       // Enter key has been pressed
-      const newContentState = Modifier.splitBlock(editorState.getCurrentContent(), editorState.getSelection());
+      const deletedSections = (selection.getAnchorKey() === selection.getFocusKey() && selection.getFocusOffset() === selection.getAnchorOffset()) ? [] : deleteSelectionRange();
+
+      newContentBlocks = newContentBlocks.concat(deletedSections);
+      console.log('SPLIT BLOCK', newContentBlocks);
+
+      // if (deletedSections.length > 1) {
+      //   // Delete blocks
+      //   var newContentState = Modifier.removeRange(editorState.getCurrentContent(), selection, 'forward');
+      //   var newSelection = new SelectionState({
+      //     anchorKey: selection.getAnchorKey(),
+      //     focusKey: selection.getAnchorKey(),
+      //     anchorOffset: selection.getAnchorOffset(),
+      //     focusOffset: selection.getAnchorOffset(),
+      //     isBackward: false,
+      //     hasFocus: selection.getHasFocus(),
+      //   });
+      //   newContentState.selectionState = newSelection;
+      // } else {
+      var newContentState = editorState.getCurrentContent();
+      var newSelection = selection;
+      // }
+
+      console.log(newSelection);
+      console.log(newContentState);
+      newContentState = Modifier.splitBlock(newContentState, newSelection);
       newContentBlocks.push({
         type: 'split-block',
         block: editorState.getSelection().getAnchorKey(),
         newBlock: newContentState.getKeyAfter(editorState.getSelection().getAnchorKey()),
         position: editorState.getSelection().getAnchorOffset(),
       });
-      console.log(editorState.getSelection().getAnchorKey());
       setEditorState(EditorState.push(editorState, newContentState, 'split-block'));
 
     } else if (Array.from({length: 8}, (_, i) => i + 33).includes(e.keyCode)) {
@@ -164,6 +191,33 @@ export default function TextEditor(props) {
     }
 
     return 'not-handled';
+  }
+
+  function deleteSelectionRange() {
+    var stack = [];
+    console.log('RANGE', getKeyRange());
+    getKeyRange().forEach(key => {
+      const selection = editorState.getSelection();
+
+      // if (key !== selection.getAnchorKey() && key !== selection.getFocusKey() && selection.getAnchorOffset() !== selection.getFocusOffset()) {
+      const stop = selection.isBackward ? selection.getAnchorKey() : selection.getFocusKey();
+      const stopOffset = selection.isBackward ? selection.getAnchorOffset() : selection.getFocusOffset();
+      const focus = stop === key ? stopOffset : editorState.getCurrentContent().getBlockForKey(key).getText().length;
+
+      const start = selection.isBackward ? selection.getFocusKey() : selection.getAnchorKey();
+      const startOffset = selection.isBackward ? selection.getFocusOffset() : selection.getAnchorOffset();
+      const anchor = start === key ? startOffset : -1;
+
+      stack.push({
+        type: 'delete',
+        block: key,
+        position: anchor,
+        offset: focus,
+      });
+      // }
+    });
+    console.log(stack);
+    return stack;
   }
 
   function getKeyRange() {

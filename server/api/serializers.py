@@ -147,7 +147,6 @@ class InsertDocumentContentSerializer(BaseDocumentUpdateContentSerializer):
     def save(self, instance: Document, **kwargs) -> None:
         block: ContentBlock = instance.blocks.get_or_create(
             key=self.validated_data['block'], defaults={'index': 0})[0]
-        print(block)
         block.text = block.text[:self.validated_data['position']] + \
             self.validated_data['text'] + \
             block.text[self.validated_data['position']:]
@@ -163,11 +162,11 @@ class DeleteDocumentContentSerializer(BaseDocumentUpdateContentSerializer):
     offset = serializers.IntegerField(required=True, min_value=0)
 
     def save(self, instance: Document, **kwargs) -> None:
+        print('INSTANCE: ', instance)
         block: ContentBlock = instance.blocks.get(
             key=self.validated_data['block'])
         if self.validated_data['position'] == -1:
             if (block_before := self.get_block_before(block, instance)):
-                print(block_before)
                 block_before.text += block.text[self.validated_data['position'] +
                                                 self.validated_data['offset']:]
                 block_before.save(update_fields=['text'])

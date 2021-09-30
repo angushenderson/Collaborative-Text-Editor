@@ -20,7 +20,7 @@ class DocumentConsumer(AsyncWebsocketConsumer):
         'split-block': SplitContentBlockSerializer,
         'set-block-type': SetContentBlockTypeSerializer,
         'set-inline-style': SetInlineStyleSerializer,
-        # This exists solely for error catching/handling
+        # This exists solely for base error catching/handling
         '': BaseDocumentUpdateContentSerializer,
     }
 
