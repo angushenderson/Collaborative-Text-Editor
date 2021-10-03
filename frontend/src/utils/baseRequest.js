@@ -13,6 +13,8 @@ export default function baseRequest(user, setUser, history, requestCallback) {
 
   const current_time = new Date().getTime();
 
+  console.log(current_time, access_exp * 1000);
+
   // if (refresh_exp < new Date().getTime()/1000) {
   if (current_time >= refresh_exp * 1000) {
     // Refresh token has expired, need to get user to log back in again

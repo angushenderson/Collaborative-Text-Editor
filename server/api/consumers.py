@@ -5,6 +5,7 @@ from channels.db import database_sync_to_async
 from api.models import Document, ContentBlock, InlineStyle
 from api.serializers import *
 from authentication.models import User
+from .auth import is_token_valid
 
 # TODO: Once REDIS is set up, look at loading document object and all children into this to reduce lookup times in main database
 #        then drip feed updates back in every few minutes and leave redis when all websocket's close. Make super fast!!
@@ -42,30 +43,31 @@ class DocumentConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data) -> None:
         """ Run when server websocket receives data from client """
-        # TODO check auth token
         # TODO improve errors returned via websocket
         serializer = await self.load_message_serializer(text_data)
 
         if serializer.is_valid():
-            type: str = serializer.validated_data['type']
-            body: dict = serializer.validated_data['body']
+            if await self.is_valid_access_token(serializer.validated_data['access_token']):
+                type: str = serializer.validated_data['type']
+                body: dict = serializer.validated_data['body']
 
-            if type == 'update-document-content':
-                serializers = await self.document_update_type(body)
-                for serializer in serializers:
-                    await self.update_document_content(serializer)
-                await self.send(text_data)
+                if type == 'update-document-content':
+                    serializers = await self.document_update_type(body)
+                    for serializer in serializers:
+                        await self.update_document_content(serializer)
+                    await self.send(text_data)
 
-            elif type == 'update-document-title':
-                title_serializer = UpdateDocumentTitleSerializer(data=body)
+                elif type == 'update-document-title':
+                    title_serializer = UpdateDocumentTitleSerializer(data=body)
 
-                if title_serializer.is_valid():
-                    await self.update_document_title(title_serializer)
-                    await self.send(text_data=json.dumps(serializer.validated_data))
+                    if title_serializer.is_valid():
+                        await self.update_document_title(title_serializer)
+                        await self.send(text_data=json.dumps(serializer.validated_data))
 
-                else:
-                    await self.raise_error()
-
+                    else:
+                        await self.raise_error()
+            else:
+                await self.raise_error({"access_token": "Invalid access token"})
         else:
             await self.raise_error()
 
@@ -93,6 +95,9 @@ class DocumentConsumer(AsyncWebsocketConsumer):
         else:
             await self.raise_error(serializer.errors)
         return serializers
+
+    async def is_valid_access_token(self, token):
+        return await is_token_valid(token, self.scope['user'])
 
     @database_sync_to_async
     def load_message_serializer(self, text_data) -> WebSocketMessageSerializer:

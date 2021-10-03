@@ -58,26 +58,28 @@ export default function EditorPage(props) {
         const text = titleEditorState.getCurrentContent().getPlainText();
         // Only send text if its changed
         if (previousTitle !== text) {
-          webSocket.current.send(JSON.stringify({
-            'type': 'update-document-title',
-            'access_token': user.Authorization.access,
-            'body': {
-              'title': text,
-            },
-          }));
-          setPreviousTitle(text);
-
-          setDocuments((documents) => {
-            // Update document title in documents list (shown in document explorer column)
-            var docIndex = documents.map((elem) => elem.id).indexOf(currentDocumentId);
-            return [
-              ...documents.slice(0, docIndex),
-              {
-                ...documents[docIndex],
-                title: text === '' ? 'Untitled' : text,
+          baseRequest(user, setUser, history, (access_token) => {
+            webSocket.current.send(JSON.stringify({
+              'type': 'update-document-title',
+              'access_token': access_token,
+              'body': {
+                'title': text,
               },
-              ...documents.slice(docIndex+1),
-            ]
+            }));
+            setPreviousTitle(text);
+
+            setDocuments((documents) => {
+              // Update document title in documents list (shown in document explorer column)
+              var docIndex = documents.map((elem) => elem.id).indexOf(currentDocumentId);
+              return [
+                ...documents.slice(0, docIndex),
+                {
+                  ...documents[docIndex],
+                  title: text === '' ? 'Untitled' : text,
+                },
+                ...documents.slice(docIndex+1),
+              ]
+            });
           });
         }
       } else {
@@ -94,15 +96,17 @@ export default function EditorPage(props) {
           // Only send request if content has been updated
           console.log(updatedContentStack);
           console.log(user);
-          webSocket.current.send(JSON.stringify({
-            'type': 'update-document-content',
-            'access_token': user.Authorization.access,
-            'body': {
-              'data': updatedContentStack,
-            },
-          }));
-          // Reset
-          setUpdatedContentStack([]);
+          baseRequest(user, setUser, history, (access_token) => {
+            webSocket.current.send(JSON.stringify({
+              'type': 'update-document-content',
+              'access_token': user.Authorization.access,
+              'body': {
+                'data': updatedContentStack,
+              },
+            }));
+            // Reset
+            setUpdatedContentStack([]);
+          });
         }
       }
     }

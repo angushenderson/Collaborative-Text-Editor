@@ -5,7 +5,6 @@ from django.conf import settings
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
 from api.models import Document, DocumentCollaborator, ContentBlock, InlineStyle
-from .validators import ValidAccessToken
 from .auth import is_token_valid
 
 
@@ -116,10 +115,6 @@ class WebSocketMessageSerializer(serializers.Serializer):
     type = serializers.CharField(required=True)
     access_token = serializers.CharField(required=True)
     body = serializers.DictField(required=True)
-
-    def validate_access_token(self, value):
-        if not is_token_valid(value, self.context['user']):
-            raise serializers.ValidationError('Access token is invalid.')
 
 
 class UpdateDocumentTitleSerializer(serializers.Serializer):
