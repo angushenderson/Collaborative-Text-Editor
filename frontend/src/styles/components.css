@@ -332,12 +332,14 @@ input:-webkit-autofill {
 /* Title editor */
 .title-editor-container {
   margin-top: 96px;
+  padding: 0 16px;
 }
 
 /* Text editor */
 .text-editor-container {
   margin-top: 32px;
   flex: 1 1 auto;
+  padding: 0 16px;
 }
 
 /* Header */

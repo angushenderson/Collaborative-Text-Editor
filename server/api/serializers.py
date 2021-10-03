@@ -5,7 +5,6 @@ from django.conf import settings
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
 from api.models import Document, DocumentCollaborator, ContentBlock, InlineStyle
-from .auth import is_token_valid
 
 
 class InlineStyleSerializer(ModelSerializer):
@@ -133,7 +132,7 @@ class UpdateDocumentContentSerializer(serializers.Serializer):
 
 class BaseDocumentUpdateContentSerializer(serializers.Serializer):
     """ Base serializer class to be inherited by serializers which modify the content of a document """
-    block = serializers.CharField(required=True, min_length=5, max_length=5)
+    block = serializers.CharField(required=True, min_length=1, max_length=5)
     position = serializers.IntegerField(required=True, min_value=0)
 
     @abstractmethod
@@ -198,7 +197,7 @@ class DeleteDocumentContentSerializer(BaseDocumentUpdateContentSerializer):
 
 class SplitContentBlockSerializer(BaseDocumentUpdateContentSerializer):
     newBlock = serializers.CharField(
-        required=True, min_length=5, max_length=5)
+        required=True, min_length=1, max_length=5)
 
     def save(self, instance: Document, **kwargs) -> None:
         block: ContentBlock = instance.blocks.get(
