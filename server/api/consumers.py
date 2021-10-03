@@ -25,6 +25,11 @@ class DocumentConsumer(AsyncWebsocketConsumer):
         # This exists solely for base error catching/handling
         '': BaseDocumentUpdateContentSerializer,
     }
+    RESPONSE_KEYS = ('type', 'body')
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self._errors: list = []
 
     async def connect(self) -> None:
         """ Run when websocket connection established """
@@ -55,14 +60,14 @@ class DocumentConsumer(AsyncWebsocketConsumer):
                     serializers = await self.document_update_type(body)
                     for serializer in serializers:
                         await self.update_document_content(serializer)
-                    await self.send(text_data)
+                    # await self.send(text_data)
 
                 elif type == 'update-document-title':
                     title_serializer = UpdateDocumentTitleSerializer(data=body)
 
                     if title_serializer.is_valid():
                         await self.update_document_title(title_serializer)
-                        await self.send(text_data=json.dumps(serializer.validated_data))
+                        # await self.send(text_data=json.dumps(serializer.validated_data))
 
                     else:
                         await self.raise_error()
@@ -71,11 +76,27 @@ class DocumentConsumer(AsyncWebsocketConsumer):
         else:
             await self.raise_error()
 
+        # print(type(text_data))
+        print(text_data)
+        await self.send_response(json.loads(text_data))
+
     async def raise_error(self, errors: dict = None):
         # 1002 - data is flawed, throw all blame on the client lol
         print('ERRORS', errors)
+        self._errors += errors
         # self.close(code=1002)
-        self.send(json.dumps(errors))
+        # self.send(json.dumps(errors))
+
+    async def send_response(self, text_data):
+        print("RESPONSE")
+        if self._errors:
+            print(json.dumps(self._errors))
+            await self.send(text_data=json.dumps({"errors": self._errors}))
+            self._errors = []
+        else:
+            print(
+                {key: text_data[key] for key in text_data.keys() if key in self.RESPONSE_KEYS})
+            await self.send(text_data=json.dumps({key: text_data[key] for key in text_data.keys() if key in self.RESPONSE_KEYS}))
 
     async def document_update_type(self, data: dict) -> list[BaseDocumentUpdateContentSerializer]:
         """ Convert update message to specific update type serializer. If invalid, None is returned """

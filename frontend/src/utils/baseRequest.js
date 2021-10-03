@@ -16,14 +16,14 @@ export default function baseRequest(user, setUser, history, requestCallback) {
   console.log(current_time, access_exp * 1000);
 
   // if (refresh_exp < new Date().getTime()/1000) {
-  if (current_time >= refresh_exp * 1000) {
+  if (current_time >= (refresh_exp * 1000) - 1500) {
     // Refresh token has expired, need to get user to log back in again
     // Clear tokens then redirect
     logout(setUser);
     // TODO after login return to running this function
     history.push('/login');
   // } else if (access_exp < new Date().getTime()/1000) {
-  } else if (current_time >= access_exp * 1000) {
+  } else if (current_time >= (access_exp * 1000) - 1500) {
     // Access token has expired, request a new access token
     fetch('/api/auth/token/refresh/', {
       method: 'POST',

@@ -94,12 +94,10 @@ export default function EditorPage(props) {
       if (webSocket.current.readyState === WebSocket.OPEN) {
         if (!isNull(updatedContentStack)) {
           // Only send request if content has been updated
-          console.log(updatedContentStack);
-          console.log(user);
           baseRequest(user, setUser, history, (access_token) => {
             webSocket.current.send(JSON.stringify({
               'type': 'update-document-content',
-              'access_token': user.Authorization.access,
+              'access_token': access_token,
               'body': {
                 'data': updatedContentStack,
               },
