@@ -9,28 +9,31 @@ class Document(models.Model):
     """ Model for representing a document page. Content is constructed from a series of ordered content blocks """
     id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
     title = models.CharField(max_length=256, default='', blank=True)
-    collaborators = models.ManyToManyField(
-        User, through='DocumentCollaborator', through_fields=('document', 'user'), related_name='collaborators')
 
 
 class DocumentCollaborator(models.Model):
     """ Intermediary table for collaborators of a specific document """
     PERMISSION_CHOICES = (
         (0, 'Owner'),
-        (1, 'Editor'),
-        (2, 'Viewer'),
+        (1, 'Admin'),
+        (2, 'Editor'),
+        (3, 'Viewer'),
     )
     id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
-    document = models.ForeignKey(Document, on_delete=models.CASCADE)
+    document = models.ForeignKey(
+        Document, on_delete=models.CASCADE, related_name='collaborators')
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    permission = models.PositiveSmallIntegerField(choices=PERMISSION_CHOICES, default=2, validators=(
+    permission = models.PositiveSmallIntegerField(choices=PERMISSION_CHOICES, default=3, validators=(
         MinLengthValidator(0), MaxLengthValidator(len(PERMISSION_CHOICES))))
 
     def __str__(self) -> str:
         return f'{self.user.username}: {self.permission}'
 
+    def permission_level(self) -> str:
+        """ Get the string representation of a users permission level from int """
+        return next((permission for permission_level, permission in self.PERMISSION_CHOICES if permission_level == self.permission), None)
 
-# TODO Look at using document indexes to sort content blocks in the correct order
+
 class ContentBlock(models.Model):
     """
     Model representing single content block in larger document.

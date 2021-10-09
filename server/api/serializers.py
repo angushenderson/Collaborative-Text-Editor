@@ -5,6 +5,7 @@ from django.conf import settings
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
 from api.models import Document, DocumentCollaborator, ContentBlock, InlineStyle
+from authentication.serializers import UserSerializer
 
 
 class InlineStyleSerializer(ModelSerializer):
@@ -48,19 +49,26 @@ class ContentBlockSerializer(ModelSerializer):
 
 class DocumentCollaboratorSerializer(ModelSerializer):
     """ Serializer class for DocumentCollaborator model """
+    user = UserSerializer()
+
     class Meta:
         model = DocumentCollaborator
-        fields = '__all__'
+        fields = ('id', 'user', 'permission')
+
+    def to_representation(self, instance: DocumentCollaborator) -> dict:
+        representation: dict = super().to_representation(instance)
+        representation['permission_level'] = instance.permission_level()
+        return representation
 
 
 class DocumentSerializer(ModelSerializer):
     """ Serializer class for Document model """
     blocks = ContentBlockSerializer(many=True, required=False)
-    # collaborators = DocumentCollaboratorSerializer(many=True, read_only=True)
+    collaborators = DocumentCollaboratorSerializer(many=True, read_only=True)
 
     class Meta:
         model = Document
-        fields = ('id', 'title', 'blocks')
+        fields = ('id', 'title', 'blocks', 'collaborators')
 
     def generate_authentication_ticket(self) -> str:
         """ Generate an authentication ticket and store in current user with experation time """
@@ -74,16 +82,22 @@ class DocumentSerializer(ModelSerializer):
 
         return authentication_ticket
 
-    def to_representation(self, instance):
+    def to_representation(self, instance: Document):
         representation = super().to_representation(instance)
         representation['editor'] = {
             'blocks': representation.pop('blocks'),
             'entityMap': {},
         }
 
-        if 'user' in self.context:
+        if 'generate_authentication_ticket' in self.context:
             representation['authentication_ticket'] = self.generate_authentication_ticket(
             )
+
+        collaborator: DocumentCollaborator = instance.collaborators.get(
+            user=self.context['user'])
+
+        representation['permission_level'] = collaborator.permission_level()
+        representation['permission'] = collaborator.permission
 
         return representation
 

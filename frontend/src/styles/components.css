@@ -366,3 +366,20 @@ input:-webkit-autofill {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--lightest-accent-color);
 }
+
+/* Share controls */
+.dropdown-content {
+  display: none;
+  position: absolute;
+  background-color: var(--accent-background-color);
+  min-width: 300px;
+  transform: translateX(-200px);
+  box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+  padding: 12px 16px;
+  z-index: 1;
+  max-height: 400px;
+}
+
+.dropdown-container:hover .dropdown-content {
+  display: block;
+}

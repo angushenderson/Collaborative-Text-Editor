@@ -13,6 +13,8 @@ server/.venv
 
 # pycache
 **/__pycache__/
+__pycache__/
+*.py[cod]
 
 # media
 !server/media

@@ -10,6 +10,11 @@ class DocumentsListCreateView(ListCreateAPIView):
     """ API view that lists all documents a user has permissions for """
     serializer_class = DocumentSerializer
 
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['user'] = self.request.user
+        return context
+
     def perform_create(self, serializer) -> None:
         serializer.save(user=self.request.user)
 
@@ -20,7 +25,7 @@ class DocumentsListCreateView(ListCreateAPIView):
         of the queryset keyword.
         """
         user = self.request.user
-        return Document.objects.filter(collaborators=user)
+        return Document.objects.filter(collaborators__user=user)
 
 
 class DocumentView(RetrieveUpdateDestroyAPIView):
@@ -32,4 +37,5 @@ class DocumentView(RetrieveUpdateDestroyAPIView):
     def get_serializer_context(self):
         context = super().get_serializer_context()
         context['user'] = self.request.user
+        context['generate_authentication_ticket'] = True
         return context

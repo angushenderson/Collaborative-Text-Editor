@@ -27,6 +27,7 @@ export default function EditorPage(props) {
   // Document
   const [documents, setDocuments] = useState(null);
   const [currentDocumentId, setCurrentDocumentId] = useState(null);
+  const [documentCollaborators, setDocumentCollaborators] = useState(null);
   const [authenticationTicket, setAuthenticationTicket] = useState(null);
 
   // State for managing title input box
@@ -130,6 +131,7 @@ export default function EditorPage(props) {
             }
           }
           setDocuments(data);
+          console.log("DOCUMENTS", data);
         }
       });
     })
@@ -153,11 +155,10 @@ export default function EditorPage(props) {
           setTitleEditorState(() => EditorState.createWithContent(ContentState.createFromText(data.title)));
           setDocumentEditorState(() => EditorState.createWithContent(convertFromRaw(data.editor)));
           setCurrentDocumentId(data.id);
-          console.log(data);
           setAuthenticationTicket(data.authentication_ticket);
           setPreviousTitle(data.title);
           setUpdatedContentStack([]);
-          console.log(data.editor);
+          setDocumentCollaborators(data.collaborators);
           history.push(`/editor/${data.id}`);
         }
       });
@@ -236,9 +237,16 @@ export default function EditorPage(props) {
   }, []);
 
   if (documents !== null) {
+    const myDocuments = documents.filter(document => document.permission === 0);
+    const sharedWithMeDocuments = documents.filter(document => document.permission !== 0);
+
     return <div>
       {sidebarContentMargin !== 0 && <Sidebar width={270} setSidebarContentMargin={setSidebarContentMargin} >
-        {documents.map((document, index) => {
+        <div style={{padding: '2px 18px'}}>
+          <h3>My Documents</h3>
+          <hr />
+        </div>
+        {myDocuments.map((document, index) => {
           return <div key={index} style={{padding: '2px 18px'}} onClick={() => fetchDocument(document.id)}>
             <h4 style={{margin: '12px 0', cursor: 'pointer'}}>{document.title}</h4>
           </div>;
@@ -246,10 +254,19 @@ export default function EditorPage(props) {
         <div style={{padding: '12px 18px'}}>
           <Button text='New page' onClick={createNewDocument} />
         </div>
+        <div style={{padding: '2px 18px'}}>
+          <h3>Shared with me</h3>
+          <hr />
+        </div>
+        {sharedWithMeDocuments.map((document, index) => {
+          return <div key={index} style={{padding: '2px 18px'}} onClick={() => fetchDocument(document.id)}>
+            <h4 style={{margin: '12px 0', cursor: 'pointer'}}>{document.title}</h4>
+          </div>;
+        })}
       </Sidebar>}
       
       <div style={{marginLeft: `${sidebarContentMargin !== 0 ? sidebarContentMargin: 0}px`, position: 'sticky', top: '0px', background: '#101010', zIndex: '10', height: '64px'}}>
-        <Header documentTitle={titleEditorState !== null ? titleEditorState.getCurrentContent().getPlainText() : ''} sidebarOpen={sidebarContentMargin!==0} toggleSidebar={() => setSidebarContentMargin(270)} />
+        <Header documentTitle={titleEditorState !== null ? titleEditorState.getCurrentContent().getPlainText() : ''} sidebarOpen={sidebarContentMargin!==0} toggleSidebar={() => setSidebarContentMargin(270)} documentCollaborators={documentCollaborators} setDocumentCollaborators={setDocumentCollaborators} />
       </div>
 
       {( titleEditorState !== null && documentEditorState !== null) ?
