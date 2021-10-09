@@ -4,6 +4,21 @@
 
 ## Local setup
 
+## Tech Stack
+
+ - Backend
+   - Python
+   - Django → Out of all the Python Web Frameworks I've tried, Django was just my favourite to develop with. No technical reason for choosing this per say, I just loved using it!
+     - Django Rest Framework
+     - Django Channels
+ - Database
+   - SQLite3 → As this is just a small side/passion project that realistically isn't going to get used very much when deployed, SQLite3's simple integration with Django just made it simple to get this project off the ground, despite some of its technical limitations.
+   - Redis → Django Channels uses this to create Socket Channels, however I'll also probably use it to store documents whilst they're being edited to reduce the number of hits on the SQLite database, and improve response times.
+ - Frontend
+   - React → Again, like Django, I just love using React!
+     - DraftJS
+ 
+
 ## Technical Overview
 
 ### WebSocket Security
@@ -19,5 +34,3 @@ To combat this I instead implemented a ticket system. When the user first reques
 Obviously there are some improvements that could be made here, for one we could log the IP address of the user when requesting this ticket, then only allow the WebSocket messages to be sent if the requests came from the same source.
 
 Once a connection has been established, this is no longer an issue as we can attach the auth JWT securely within the body of the message, rather than having to use query params.
-
-### Tech Stack
