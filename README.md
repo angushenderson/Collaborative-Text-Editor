@@ -1,5 +1,7 @@
 # Collaborative Text Editor
 
+[!!THIS PROJECT IS STILL UNDER DEVELOPMENT!!] I'm currently making new changes weekly, however once complete, I'll provide a proper setup guide and a deployed example online! I have big ambitions for this project and can't wait to share it all with you once its finished!! :)
+
 ## Project Description
 
 ## Local setup
