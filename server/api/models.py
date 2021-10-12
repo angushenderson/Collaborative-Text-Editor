@@ -10,6 +10,13 @@ class Document(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
     title = models.CharField(max_length=256, default='', blank=True)
 
+    def user_is_owner(self, user: User) -> bool:
+        """ Determine wether a given user is the owner of the Document """
+        collaborator: DocumentCollaborator = self.collaborators.get(user, None)
+        if collaborator:
+            return collaborator.permission == 0
+        return False
+
 
 class DocumentCollaborator(models.Model):
     """ Intermediary table for collaborators of a specific document """

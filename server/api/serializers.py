@@ -6,6 +6,7 @@ from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
 from api.models import Document, DocumentCollaborator, ContentBlock, InlineStyle
 from authentication.serializers import UserSerializer
+from authentication.models import User
 
 
 class InlineStyleSerializer(ModelSerializer):
@@ -49,15 +50,21 @@ class ContentBlockSerializer(ModelSerializer):
 
 class DocumentCollaboratorSerializer(ModelSerializer):
     """ Serializer class for DocumentCollaborator model """
-    user = UserSerializer()
+    # user = UserSerializer()
 
     class Meta:
         model = DocumentCollaborator
-        fields = ('id', 'user', 'permission')
+        fields = ('id', 'user', 'permission', 'document')
+
+    def get_user(self, user_id: str) -> User:
+        return User.objects.get(id=user_id)
 
     def to_representation(self, instance: DocumentCollaborator) -> dict:
         representation: dict = super().to_representation(instance)
         representation['permission_level'] = instance.permission_level()
+        representation['user'] = UserSerializer(
+            instance=self.get_user(representation['user'])).data
+        representation['document'] = str(representation['document'])
         return representation
 
 

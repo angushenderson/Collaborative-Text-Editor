@@ -36,9 +36,10 @@ class DocumentConsumer(AsyncWebsocketConsumer):
         self.document_id: str = self.scope['url_route']['kwargs']['document_id']
         try:
             self.document: Document = await self.get_document(self.document_id)
-            if self.is_user_contributor(self.scope['user'], self.document):
+            self.user: User = self.scope['user']
+            if self.is_user_contributor(self.user, self.document):
                 await self.accept()
-                print(f'CONNECTED --> {self.scope["user"]}')
+                print(f'CONNECTED --> {self.user}')
         except ObjectDoesNotExist:
             pass
 
@@ -50,6 +51,7 @@ class DocumentConsumer(AsyncWebsocketConsumer):
         """ Run when server websocket receives data from client """
         # TODO improve errors returned via websocket
         serializer = await self.load_message_serializer(text_data)
+        response = json.loads(text_data)
 
         if serializer.is_valid():
             if await self.is_valid_access_token(serializer.validated_data['access_token']):
@@ -60,25 +62,31 @@ class DocumentConsumer(AsyncWebsocketConsumer):
                     serializers = await self.document_update_type(body)
                     for serializer in serializers:
                         await self.update_document_content(serializer)
-                    # await self.send(text_data)
 
                 elif type == 'update-document-title':
                     title_serializer = UpdateDocumentTitleSerializer(data=body)
-
                     if title_serializer.is_valid():
                         await self.update_document_title(title_serializer)
-                        # await self.send(text_data=json.dumps(serializer.validated_data))
-
                     else:
-                        await self.raise_error()
+                        await self.raise_error(serializer.errors)
+
+                # TODO Streamline these methods into a single switch like condition
+                elif type == 'add-new-collaborator':
+                    body['document'] = str(self.document.id)
+                    serializer = await self.create_document_collaborator_serializer(body)
+                    if await self.is_serializer_valid(serializer):
+                        await self.add_new_document_collaborator(serializer)
+                        response['body'] = await self.serializer_data(serializer)
+                    else:
+                        await self.raise_error(serializer.errors)
             else:
                 await self.raise_error({"access_token": "Invalid access token"})
         else:
             await self.raise_error()
 
         # print(type(text_data))
-        print(text_data)
-        await self.send_response(json.loads(text_data))
+        print(response)
+        await self.send_response(response)
 
     async def raise_error(self, errors: dict = None):
         # 1002 - data is flawed, throw all blame on the client lol
@@ -141,3 +149,20 @@ class DocumentConsumer(AsyncWebsocketConsumer):
     def update_document_content(self, serializer: BaseDocumentUpdateContentSerializer) -> None:
         """ Method to update the content of a document. """
         serializer.save(self.document)
+
+    @database_sync_to_async
+    def add_new_document_collaborator(self, serializer: DocumentCollaboratorSerializer) -> None:
+        """ Add a new document collaborator """
+        serializer.save()
+
+    @database_sync_to_async
+    def create_document_collaborator_serializer(self, body: dict) -> DocumentCollaboratorSerializer:
+        return DocumentCollaboratorSerializer(data=body)
+
+    @database_sync_to_async
+    def is_serializer_valid(self, serializer) -> bool:
+        return serializer.is_valid()
+
+    @database_sync_to_async
+    def serializer_data(self, serializer) -> dict:
+        return serializer.data

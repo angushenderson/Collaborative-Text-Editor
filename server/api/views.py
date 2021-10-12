@@ -1,9 +1,14 @@
-from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import permissions
-from api.models import Document
-from api.serializers import DocumentSerializer
+from rest_framework.generics import (
+    CreateAPIView,
+    ListCreateAPIView,
+    RetrieveUpdateDestroyAPIView,
+    ListAPIView
+)
+from rest_framework import filters
+from api.models import Document, DocumentCollaborator
+from api.serializers import DocumentSerializer, DocumentCollaboratorSerializer
+from authentication.models import User
+from authentication.serializers import UserSerializer
 
 
 class DocumentsListCreateView(ListCreateAPIView):
@@ -32,10 +37,21 @@ class DocumentView(RetrieveUpdateDestroyAPIView):
     """ API view for editing documents """
     queryset = Document.objects.all()
     serializer_class = DocumentSerializer
-    permission_classes = [permissions.AllowAny]
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
         context['user'] = self.request.user
-        context['generate_authentication_ticket'] = True
+        if self.request.method == 'GET':
+            context['generate_authentication_ticket'] = True
         return context
+
+
+class CollaboratorsView(CreateAPIView):
+    serializer_class = DocumentCollaboratorSerializer
+
+
+class UserSearchView(ListAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['username']
