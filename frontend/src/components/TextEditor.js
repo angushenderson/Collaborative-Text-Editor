@@ -290,7 +290,7 @@ export default function TextEditor(props) {
   }
 
   return <div className='editor-container'>
-    <div className='editor-control-panel' style={{marginBottom: '12px', position: 'sticky', top: '64px', background: '#101010', zIndex: '10'}}>
+    <div className='editor-control-panel' style={{marginBottom: '12px', position: 'sticky', top: '64px', background: '#101010', zIndex: '5'}}>
       <div style={{display: 'inline-flex', flexWrap: 'wrap'}}>
         {  BLOCK_TYPES.map(item => {
           return <div style={{marginRight: '8px'}} key={item[0]}>

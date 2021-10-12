@@ -1,14 +1,62 @@
 import React from 'react';
+import { useHistory } from 'react-router-dom';
 import { FaHamburger } from 'react-icons/fa';
 import { userContext } from '../userContext';
+import baseRequest from '../utils/baseRequest';
+import TextInput from './input/text_input';
 
-export default function Header ({documentTitle='Untitled', sidebarOpen=false, toggleSidebar=null, documentCollaborators=null, setDocumentCollaborators=null}) {
+export default function Header ({documentTitle='Untitled', sidebarOpen=false, toggleSidebar=null, documentCollaborators=null, setDocumentCollaborators=null, documentId=null, websocket=null}) {
   // User context
   const { user, setUser } = React.useContext(userContext);
 
+  // Router
+  const history = useHistory();
+
   const [iconColor, setIconColor] = React.useState('white');
 
-  console.log("Collaborators", documentCollaborators);
+  const [searchBarValue, setSearchBarValue] = React.useState('');
+  const [searchResults, setSearchResults] = React.useState([]);
+
+  React.useEffect(() => {
+    if (searchBarValue !== '') {
+      // Request timeout to only send request once user has stopped typing
+      const delayDebounceFn = setTimeout(() => {
+        baseRequest(user, setUser, history, (accessToken) => {
+          fetch(`/api/users/search/?search=${searchBarValue}`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+            }
+          }).then((response) => {
+            if (response.ok) {
+              return response.json()
+            }
+          }).then((data) => {
+            if (data !== undefined) {
+              console.log("Search Response", data);
+              setSearchResults(data);
+            }
+          });
+        });
+      }, 200);
+
+      return () => clearTimeout(delayDebounceFn);
+    } else {
+      setSearchResults([]);
+    }
+  }, [searchBarValue]);
+
+  const addCollaborator = (user_id) => {
+    baseRequest(user, setUser, history, (accessToken) => {
+      websocket.current.send(JSON.stringify({
+        'type': 'add-new-collaborator',
+        'access_token': accessToken,
+        'body': {
+          'user': user_id,
+        }
+      }));
+    });
+  }
 
   return <div style={{display: 'inline-flex', justifyContent: 'space-between', alignItems: 'center', width: '100%'}}>
     <div style={{display: 'inline-flex', alignItems: 'center'}}>
@@ -20,6 +68,17 @@ export default function Header ({documentTitle='Untitled', sidebarOpen=false, to
       {documentCollaborators && <div style={{marginRight: '16px'}} className="dropdown-container">
         <button className='btn-secondary' style={{padding: '8px 16px'}}>Share</button>
         <div className="dropdown-content">
+          <TextInput
+            value={searchBarValue}
+            setValue={setSearchBarValue}
+            id='user_search_bar'
+            label='Add collaborators'
+            placeholderText='ach_henderson'
+            autocomplete='off'
+          />
+          <div style={{padding: '4px 0', translate: 'translateY(-24px)'}}>
+            {searchResults.map(result => <div key={"search-result-"+result.username} style={{cursor: 'pointer'}} onClick={() => addCollaborator(result.id)}>{result.username}</div>)}
+          </div>
           <p><b>Document Collaborators</b></p>
           <hr />
           {documentCollaborators.map(collaborator => <div key={collaborator.user.username} style={{display: 'flex', flexDirection: 'row', justifyContent: 'space-between'}}>

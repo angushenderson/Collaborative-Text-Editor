@@ -152,6 +152,7 @@ export default function EditorPage(props) {
         return undefined;
       }).then((data) => {
         if (data !== undefined) {
+          console.log(data);
           setTitleEditorState(() => EditorState.createWithContent(ContentState.createFromText(data.title)));
           setDocumentEditorState(() => EditorState.createWithContent(convertFromRaw(data.editor)));
           setCurrentDocumentId(data.id);
@@ -220,12 +221,21 @@ export default function EditorPage(props) {
 
       // Function to run when data received
       webSocket.current.onmessage = (message) => {
-        console.log(message);
+        handleWebSocketMessage(message);
       };
 
       return () => webSocket.current.close();
     }
   }, [currentDocumentId, authenticationTicket]);
+
+  const handleWebSocketMessage = (message) => {
+    const data = JSON.parse(message.data);
+    console.log(data);
+    if (data.type === "add-new-collaborator") {
+      console.log(data.body);
+      setDocumentCollaborators(collaborators => [...collaborators, data.body]);
+    }
+  }
 
   useEffect(() => {
     // Check the URL document id
@@ -266,7 +276,15 @@ export default function EditorPage(props) {
       </Sidebar>}
       
       <div style={{marginLeft: `${sidebarContentMargin !== 0 ? sidebarContentMargin: 0}px`, position: 'sticky', top: '0px', background: '#101010', zIndex: '10', height: '64px'}}>
-        <Header documentTitle={titleEditorState !== null ? titleEditorState.getCurrentContent().getPlainText() : ''} sidebarOpen={sidebarContentMargin!==0} toggleSidebar={() => setSidebarContentMargin(270)} documentCollaborators={documentCollaborators} setDocumentCollaborators={setDocumentCollaborators} />
+        <Header
+          documentTitle={titleEditorState !== null ? titleEditorState.getCurrentContent().getPlainText() : ''}
+          sidebarOpen={sidebarContentMargin!==0}
+          toggleSidebar={() => setSidebarContentMargin(270)}
+          documentCollaborators={documentCollaborators}
+          setDocumentCollaborators={setDocumentCollaborators}
+          documentId={currentDocumentId}
+          websocket={webSocket}
+        />
       </div>
 
       {( titleEditorState !== null && documentEditorState !== null) ?
