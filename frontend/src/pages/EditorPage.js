@@ -245,6 +245,18 @@ export default function EditorPage(props) {
         // if (data.sender_user_id !== user.id) {
         setPreviousTitle(data.body.title);
         setTitleEditorState(EditorState.push(titleEditorState, ContentState.createFromText(data.body.title)));
+        setDocuments((documents) => {
+          // Update document title in documents list (shown in document explorer column)
+          var docIndex = documents.map((elem) => elem.id).indexOf(currentDocumentId);
+          return [
+            ...documents.slice(0, docIndex),
+            {
+              ...documents[docIndex],
+              title: data.body.title === '' ? 'Untitled' : data.body.title,
+            },
+            ...documents.slice(docIndex+1),
+          ]
+        });
         // }
         break;
     }
