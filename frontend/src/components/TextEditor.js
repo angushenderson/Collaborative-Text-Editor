@@ -321,10 +321,9 @@ export default function TextEditor(props) {
       editorState={editorState}
       handleKeyCommand={handleKeyCommand}
       keyBindingFn={keyBindingFn}
-      readOnly={user.permission > 2}
       onChange={setEditorState}
       spellCheck={true}
-      readOnly={false}
+      readOnly={user.permission > 2}
       onFocus={() => {setEditorHasFocus(true)}}
       onBlur={() => {setEditorHasFocus(false)}}
     />

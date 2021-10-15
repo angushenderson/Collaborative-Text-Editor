@@ -86,11 +86,12 @@ export default function TitleEditor (props) {
     }
   }
 
+  console.log(user.permission);
+
   return <div className={className}>
     <Editor
       editorState={editorState}
       onChange={setEditorState}
-      readOnly={user.permission > 2}
       keyBindingFn={keyBindingFn}
       handlePastedText={() => {
 
@@ -103,7 +104,7 @@ export default function TitleEditor (props) {
       }}
       placeholder='Untitled'
       spellCheck={true}
-      readOnly={false}
+      readOnly={user.permission > 1}
     />
   </div>;
 }

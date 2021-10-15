@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext, useRef } from 'react';
-import { ContentState, EditorState, convertFromRaw } from 'draft-js';
+import { ContentState, EditorState, convertFromRaw, Modifier, SelectionState } from 'draft-js';
 import { useHistory, useLocation  } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
@@ -58,7 +58,7 @@ export default function EditorPage(props) {
       if (webSocket.current.readyState === WebSocket.OPEN) {
         const text = titleEditorState.getCurrentContent().getPlainText();
         // Only send text if its changed
-        if (previousTitle !== text) {
+        if (previousTitle !== text && user.permission < 2) {
           baseRequest(user, setUser, history, (access_token) => {
             webSocket.current.send(JSON.stringify({
               'type': 'update_document_title',
@@ -232,8 +232,21 @@ export default function EditorPage(props) {
   const handleWebSocketMessage = (message) => {
     const data = JSON.parse(message.data);
     console.log(data);
-    if (data.type === 'add_new_collaborator') {
-      setDocumentCollaborators(collaborators => [...collaborators, data.body]);
+    switch (data.type) {
+      case 'add_new_collaborators':
+        setDocumentCollaborators(collaborators => [...collaborators, data.body]);
+        break;
+
+      case 'update_document_content':
+        break;
+
+      case 'update_document_title':
+        // console.log('update_document_title', data.sender_user_id, user.id);
+        // if (data.sender_user_id !== user.id) {
+        setPreviousTitle(data.body.title);
+        setTitleEditorState(EditorState.push(titleEditorState, ContentState.createFromText(data.body.title)));
+        // }
+        break;
     }
   }
 
