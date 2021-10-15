@@ -18,6 +18,8 @@ class DocumentsListCreateView(ListCreateAPIView):
     def get_serializer_context(self):
         context = super().get_serializer_context()
         context['user'] = self.request.user
+        if self.request.method == 'POST':
+            context['generate_authentication_ticket'] = True
         return context
 
     def perform_create(self, serializer) -> None:
@@ -51,6 +53,8 @@ class CollaboratorsView(CreateAPIView):
 
 
 class UserSearchView(ListAPIView):
+    # TODO Filter search results to not show users already in document, and
+    #    prevent users from being added in consumer/serializer
     queryset = User.objects.all()
     serializer_class = UserSerializer
     filter_backends = [filters.SearchFilter]

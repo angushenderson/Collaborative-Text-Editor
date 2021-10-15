@@ -1,12 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { Editor, EditorState, RichUtils, convertToRaw, getDefaultKeyBinding } from 'draft-js';
 import 'draft-js/dist/Draft.css';
 import '../styles/textEditorStyles.css';
+import { userContext } from '../userContext';
 
 export default function TitleEditor (props) {
   // Editor to set the title of a document
   const editorState = props.editorState;
   const setEditorState = props.setEditorState;
+
+  const { user, setUser } = useContext(userContext);
 
   useEffect(() => {
     /*
@@ -87,6 +90,7 @@ export default function TitleEditor (props) {
     <Editor
       editorState={editorState}
       onChange={setEditorState}
+      readOnly={user.permission > 2}
       keyBindingFn={keyBindingFn}
       handlePastedText={() => {
 

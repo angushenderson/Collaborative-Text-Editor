@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { Editor, EditorState, RichUtils, getDefaultKeyBinding, Modifier, SelectionState, ContentBlock } from 'draft-js';
 import _, { update } from 'lodash';
 import isPrintableKeyEvent from 'is-printable-key-event';
+import { userContext } from '../userContext';
 import 'draft-js/dist/Draft.css';
 import SmallButton from './input/small_button';
 import isNull from '../utils/isNull';
@@ -38,6 +39,8 @@ export default function TextEditor(props) {
   const sendUpdatedDocument = props.sendUpdatedDocument;
 
   const [editorHasFocus, setEditorHasFocus] = useState(false);
+
+  const { user, setUser } = useContext(userContext);
   
   function keyBindingFn(e) {
     // This function is run FIRST
@@ -318,6 +321,7 @@ export default function TextEditor(props) {
       editorState={editorState}
       handleKeyCommand={handleKeyCommand}
       keyBindingFn={keyBindingFn}
+      readOnly={user.permission > 2}
       onChange={setEditorState}
       spellCheck={true}
       readOnly={false}

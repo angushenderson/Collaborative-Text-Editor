@@ -80,14 +80,16 @@ TEMPLATES = [
 
 ASGI_APPLICATION = 'collaborative_text_editor.asgi.application'
 
-# CHANNEL_LAYER = {
-#     'default': {
-#         'BACKEND': 'channels_redis.core.RedisChannelLayer',
-#         'CONFIG': {
-#             'hosts': [('192.168.1.158', '6379')],
-#         }
-#     }
-# }
+CHANNEL_LAYERS = {
+    'default': {
+        # NOTE In Memory is for testing purposes, once deployed switch to redis
+        'BACKEND': 'channels.layers.InMemoryChannelLayer'
+        # 'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        # 'CONFIG': {
+        #     'hosts': [('192.168.1.158', '6379')],
+        # }
+    }
+}
 
 WSGI_APPLICATION = 'collaborative_text_editor.wsgi.application'
 
@@ -168,7 +170,7 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(seconds=5),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=1),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=14),
 }
 

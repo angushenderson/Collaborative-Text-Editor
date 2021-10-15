@@ -2,12 +2,14 @@ import React from 'react';
 import { useHistory } from 'react-router-dom';
 import { FaHamburger } from 'react-icons/fa';
 import { userContext } from '../userContext';
+import Dropdown from 'react-dropdown';
 import baseRequest from '../utils/baseRequest';
 import TextInput from './input/text_input';
 
 export default function Header ({documentTitle='Untitled', sidebarOpen=false, toggleSidebar=null, documentCollaborators=null, setDocumentCollaborators=null, documentId=null, websocket=null}) {
   // User context
   const { user, setUser } = React.useContext(userContext);
+  console.log(user.permission);
 
   // Router
   const history = useHistory();
@@ -16,6 +18,8 @@ export default function Header ({documentTitle='Untitled', sidebarOpen=false, to
 
   const [searchBarValue, setSearchBarValue] = React.useState('');
   const [searchResults, setSearchResults] = React.useState([]);
+
+  const dropdownOptions = ['Owner', 'Admin', 'Editor', 'Viewer', 'Remove'];
 
   React.useEffect(() => {
     if (searchBarValue !== '') {
@@ -49,13 +53,17 @@ export default function Header ({documentTitle='Untitled', sidebarOpen=false, to
   const addCollaborator = (user_id) => {
     baseRequest(user, setUser, history, (accessToken) => {
       websocket.current.send(JSON.stringify({
-        'type': 'add-new-collaborator',
+        'type': 'add_new_collaborator',
         'access_token': accessToken,
         'body': {
           'user': user_id,
         }
       }));
     });
+  }
+
+  const changeUserPermission = (userId, newPermission) => {
+    console.log(userId, newPermission);
   }
 
   return <div style={{display: 'inline-flex', justifyContent: 'space-between', alignItems: 'center', width: '100%'}}>
@@ -81,9 +89,9 @@ export default function Header ({documentTitle='Untitled', sidebarOpen=false, to
           </div>
           <p><b>Document Collaborators</b></p>
           <hr />
-          {documentCollaborators.map(collaborator => <div key={collaborator.user.username} style={{display: 'flex', flexDirection: 'row', justifyContent: 'space-between'}}>
+          {documentCollaborators.map(collaborator => <div key={collaborator.user.username} style={{display: 'flex', flexDirection: 'row', justifyContent: 'space-between', padding: '4px 8px'}}>
             <p>{collaborator.user.username}</p>
-            <p>{collaborator.permission_level}</p>
+            <Dropdown className="permission-dropdown" disabled={user.permission > 1} options={dropdownOptions} onChange={() => changeUserPermission(collaborator.id, )} value={collaborator.permission_level} />
           </div>)}
         </div>
       </div>}

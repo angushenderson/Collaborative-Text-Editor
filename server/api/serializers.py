@@ -50,7 +50,6 @@ class ContentBlockSerializer(ModelSerializer):
 
 class DocumentCollaboratorSerializer(ModelSerializer):
     """ Serializer class for DocumentCollaborator model """
-    # user = UserSerializer()
 
     class Meta:
         model = DocumentCollaborator

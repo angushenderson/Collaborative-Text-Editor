@@ -61,7 +61,7 @@ export default function EditorPage(props) {
         if (previousTitle !== text) {
           baseRequest(user, setUser, history, (access_token) => {
             webSocket.current.send(JSON.stringify({
-              'type': 'update-document-title',
+              'type': 'update_document_title',
               'access_token': access_token,
               'body': {
                 'title': text,
@@ -97,7 +97,7 @@ export default function EditorPage(props) {
           // Only send request if content has been updated
           baseRequest(user, setUser, history, (access_token) => {
             webSocket.current.send(JSON.stringify({
-              'type': 'update-document-content',
+              'type': 'update_document_content',
               'access_token': access_token,
               'body': {
                 'data': updatedContentStack,
@@ -160,6 +160,7 @@ export default function EditorPage(props) {
           setPreviousTitle(data.title);
           setUpdatedContentStack([]);
           setDocumentCollaborators(data.collaborators);
+          setUser((user) => ({...user, permission: data.permission, permission_level: data.permission_level}));
           history.push(`/editor/${data.id}`);
         }
       });
@@ -231,8 +232,7 @@ export default function EditorPage(props) {
   const handleWebSocketMessage = (message) => {
     const data = JSON.parse(message.data);
     console.log(data);
-    if (data.type === "add-new-collaborator") {
-      console.log(data.body);
+    if (data.type === 'add_new_collaborator') {
       setDocumentCollaborators(collaborators => [...collaborators, data.body]);
     }
   }
@@ -245,6 +245,37 @@ export default function EditorPage(props) {
       setCurrentDocumentId(id);
     }
   }, []);
+
+  const editorRenderArea = () => {
+    if (currentDocumentId) {
+      return <div style={{marginLeft: `${sidebarContentMargin}px`}}>
+        {( titleEditorState !== null && documentEditorState !== null) ?
+        <div style={{display: 'flex', justifyContent: 'center', flexDirection: 'column', minHeight: '100%'}}>
+          <div className='title-editor-container'>
+            <TitleEditor editorState={titleEditorState} setEditorState={setTitleEditorState} />
+          </div>
+          <div className='text-editor-container'>
+            <TextEditor
+              editorState={documentEditorState}
+              setEditorState={setDocumentEditorState}
+              updatedContentStack={updatedContentStack}
+              setUpdatedContentStack={setUpdatedContentStack}
+              sendUpdatedDocument={sendUpdatedDocument}
+            />
+          </div>
+        </div>
+        :
+        <h1 style={{marginLeft: '20px'}}>Loading...</h1>
+      }</div>;
+    } else {
+      return <div style={{marginLeft: `${sidebarContentMargin + 20}px`, display: 'flex', justifyContent: 'center', marginRight: '0px'}}>
+        <div style={{maxWidth: '500px'}}>
+          <h2>Select a document to get started, or create a new one!</h2>
+          <Button text='New page' onClick={createNewDocument} />
+        </div>
+      </div>
+    }
+  }
 
   if (documents !== null) {
     const myDocuments = documents.filter(document => document.permission === 0);
@@ -264,10 +295,10 @@ export default function EditorPage(props) {
         <div style={{padding: '12px 18px'}}>
           <Button text='New page' onClick={createNewDocument} />
         </div>
-        <div style={{padding: '2px 18px'}}>
+        {sharedWithMeDocuments.length !== 0 && <div style={{padding: '2px 18px'}}>
           <h3>Shared with me</h3>
           <hr />
-        </div>
+        </div>}
         {sharedWithMeDocuments.map((document, index) => {
           return <div key={index} style={{padding: '2px 18px'}} onClick={() => fetchDocument(document.id)}>
             <h4 style={{margin: '12px 0', cursor: 'pointer'}}>{document.title}</h4>
@@ -286,27 +317,8 @@ export default function EditorPage(props) {
           websocket={webSocket}
         />
       </div>
-
-      {( titleEditorState !== null && documentEditorState !== null) ?
-        <div style={{marginLeft: `${sidebarContentMargin}px`}}>
-          <div style={{display: 'flex', justifyContent: 'center', flexDirection: 'column', minHeight: '100%'}}>
-            <div className='title-editor-container'>
-              <TitleEditor editorState={titleEditorState} setEditorState={setTitleEditorState} />
-            </div>
-            <div className='text-editor-container'>
-              <TextEditor
-                editorState={documentEditorState}
-                setEditorState={setDocumentEditorState}
-                updatedContentStack={updatedContentStack}
-                setUpdatedContentStack={setUpdatedContentStack}
-                sendUpdatedDocument={sendUpdatedDocument}
-              />
-            </div>
-          </div>
-        </div>
-        :
-        <h1>Loading...</h1>
-      }
+        
+      {editorRenderArea()}
     </div>;
   } else {
     return <h1>Loading...</h1>;

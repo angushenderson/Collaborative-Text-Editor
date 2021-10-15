@@ -38,14 +38,17 @@ class DocumentConsumer(AsyncWebsocketConsumer):
             self.document: Document = await self.get_document(self.document_id)
             self.user: User = self.scope['user']
             if self.is_user_contributor(self.user, self.document):
+                # Join channel group
+                self.document_group_name = f'document_{self.document_id}'
+                await self.channel_layer.group_add(self.document_group_name, self.channel_name)
                 await self.accept()
-                print(f'CONNECTED --> {self.user}')
+
         except ObjectDoesNotExist:
             pass
 
     async def disconnect(self, close_code) -> None:
         """ Run when websocket connection terminates """
-        print('DISCONNECTED')
+        await self.channel_layer.group_discard(self.document_group_name, self.channel_name)
 
     async def receive(self, text_data) -> None:
         """ Run when server websocket receives data from client """
@@ -58,24 +61,24 @@ class DocumentConsumer(AsyncWebsocketConsumer):
                 type: str = serializer.validated_data['type']
                 body: dict = serializer.validated_data['body']
 
-                if type == 'update-document-content':
+                if type == 'update_document_content':
                     serializers = await self.document_update_type(body)
                     for serializer in serializers:
-                        await self.update_document_content(serializer)
+                        await self.save_serializer(serializer, pass_document_instance=True)
 
-                elif type == 'update-document-title':
+                elif type == 'update_document_title':
                     title_serializer = UpdateDocumentTitleSerializer(data=body)
                     if title_serializer.is_valid():
-                        await self.update_document_title(title_serializer)
+                        await self.save_serializer(title_serializer, pass_document_instance=True)
                     else:
                         await self.raise_error(serializer.errors)
 
                 # TODO Streamline these methods into a single switch like condition
-                elif type == 'add-new-collaborator':
+                elif type == 'add_new_collaborator':
                     body['document'] = str(self.document.id)
                     serializer = await self.create_document_collaborator_serializer(body)
                     if await self.is_serializer_valid(serializer):
-                        await self.add_new_document_collaborator(serializer)
+                        await self.save_serializer(serializer, pass_document_instance=False)
                         response['body'] = await self.serializer_data(serializer)
                     else:
                         await self.raise_error(serializer.errors)
@@ -104,7 +107,8 @@ class DocumentConsumer(AsyncWebsocketConsumer):
         else:
             print(
                 {key: text_data[key] for key in text_data.keys() if key in self.RESPONSE_KEYS})
-            await self.send(text_data=json.dumps({key: text_data[key] for key in text_data.keys() if key in self.RESPONSE_KEYS}))
+            # Group send send the message to other consumers, thus we need a method which will run when its received
+            await self.channel_layer.group_send(self.document_group_name, {key: text_data[key] for key in text_data.keys() if key in self.RESPONSE_KEYS})
 
     async def document_update_type(self, data: dict) -> list[BaseDocumentUpdateContentSerializer]:
         """ Convert update message to specific update type serializer. If invalid, None is returned """
@@ -128,6 +132,11 @@ class DocumentConsumer(AsyncWebsocketConsumer):
     async def is_valid_access_token(self, token):
         return await is_token_valid(token, self.scope['user'])
 
+    # TODO Implement event methods for all update types
+    async def update_document_content(self, event):
+        """Event handler for update_document_content messages"""
+        self.send(text_data=json.dumps(event))
+
     @database_sync_to_async
     def load_message_serializer(self, text_data) -> WebSocketMessageSerializer:
         return WebSocketMessageSerializer(data=json.loads(text_data), context={'user': self.scope['user']})
@@ -141,24 +150,10 @@ class DocumentConsumer(AsyncWebsocketConsumer):
         return user in document.collaborators.all()
 
     @database_sync_to_async
-    def update_document_title(self, serializer: UpdateDocumentTitleSerializer) -> None:
-        """ Function to update document title with request text """
-        serializer.save(self.document)
-
-    @database_sync_to_async
-    def update_document_content(self, serializer: BaseDocumentUpdateContentSerializer) -> None:
-        """ Method to update the content of a document. """
-        serializer.save(self.document)
-
-    @database_sync_to_async
-    def add_new_document_collaborator(self, serializer: DocumentCollaboratorSerializer) -> None:
-        """ Add a new document collaborator """
-        serializer.save()
-
-    @database_sync_to_async
     def create_document_collaborator_serializer(self, body: dict) -> DocumentCollaboratorSerializer:
         return DocumentCollaboratorSerializer(data=body)
 
+    # SERIALIZER SYNC TO ASYNC FUNCTION WRAPPERS
     @database_sync_to_async
     def is_serializer_valid(self, serializer) -> bool:
         return serializer.is_valid()
@@ -166,3 +161,9 @@ class DocumentConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def serializer_data(self, serializer) -> dict:
         return serializer.data
+
+    @database_sync_to_async
+    def save_serializer(self, serializer, pass_document_instance: bool = True) -> None:
+        """Sync to Async wrapper around serializer.save method"""
+        kwargs = {'instance': self.document} if pass_document_instance else {}
+        serializer.save(**kwargs)
