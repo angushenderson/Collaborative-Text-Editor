@@ -25,7 +25,7 @@ class DocumentConsumer(AsyncWebsocketConsumer):
         # This exists solely for base error catching/handling
         '': BaseDocumentUpdateContentSerializer,
     }
-    RESPONSE_KEYS = ('type', 'body')
+    RESPONSE_KEYS = ('type', 'body', 'sender_user_id')
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -87,7 +87,8 @@ class DocumentConsumer(AsyncWebsocketConsumer):
         else:
             await self.raise_error()
 
-        # print(type(text_data))
+        response['sender_user_id'] = str(self.user.id)
+        response['sender_channel_name'] = self.channel_name
         print(response)
         await self.send_response(response)
 
@@ -99,16 +100,15 @@ class DocumentConsumer(AsyncWebsocketConsumer):
         # self.send(json.dumps(errors))
 
     async def send_response(self, text_data):
+        # TODO Once everything is working, potentially don't send websocket response to sender, might see performance improvements
         print("RESPONSE")
         if self._errors:
             print(json.dumps(self._errors))
             await self.send(text_data=json.dumps({"errors": self._errors}))
             self._errors = []
         else:
-            print(
-                {key: text_data[key] for key in text_data.keys() if key in self.RESPONSE_KEYS})
             # Group send send the message to other consumers, thus we need a method which will run when its received
-            await self.channel_layer.group_send(self.document_group_name, {key: text_data[key] for key in text_data.keys() if key in self.RESPONSE_KEYS})
+            await self.channel_layer.group_send(self.document_group_name, text_data)
 
     async def document_update_type(self, data: dict) -> list[BaseDocumentUpdateContentSerializer]:
         """ Convert update message to specific update type serializer. If invalid, None is returned """
@@ -135,7 +135,24 @@ class DocumentConsumer(AsyncWebsocketConsumer):
     # TODO Implement event methods for all update types
     async def update_document_content(self, event):
         """Event handler for update_document_content messages"""
-        self.send(text_data=json.dumps(event))
+        await self._event_send(event)
+
+    async def update_document_title(self, event):
+        """Event handler for update_document_title messages"""
+        print("UPDATE", event['sender_channel_name'], self.channel_name)
+        if event['sender_channel_name'] != self.channel_name:
+            await self._event_send(event)
+
+    async def add_new_collaborator(self, event):
+        """Event handler for add_new_collaborator messages"""
+        await self._event_send(event)
+
+    async def _event_send(self, event: dict) -> None:
+        """Method to send responses from event handlers"""
+        await self.send(
+            text_data=json.dumps(
+                {key: event[key] for key in event if key in self.RESPONSE_KEYS})
+        )
 
     @database_sync_to_async
     def load_message_serializer(self, text_data) -> WebSocketMessageSerializer:
