@@ -240,15 +240,29 @@ export default function EditorPage() {
           
           switch (update.type) {
             case 'insert':
-              const new_selection = new SelectionState({
+              var new_selection = new SelectionState({
                 anchorKey: update.block,
                 focusKey: update.block,
                 anchorOffset: update.position,
                 focusOffset: update.position,
               });
 
-              const newContentState = Modifier.insertText(newEditorState.getCurrentContent(), new_selection, update.text, null);
+              var newContentState = Modifier.insertText(newEditorState.getCurrentContent(), new_selection, update.text, null);
               newEditorState = EditorState.push(newEditorState, newContentState, 'insert-characters');
+              break;
+
+            case 'delete':
+              var new_selection = new SelectionState({
+                anchorKey: update.block,
+                focusKey: update.block,
+                anchorOffset: update.position,
+                focusOffset: update.position + update.offset,
+                isBackward: false,
+              });
+
+              var newContentState = Modifier.removeRange(newEditorState.getCurrentContent(), new_selection, 'backward');
+              newEditorState = EditorState.push(newEditorState, newContentState, 'remove-range');
+              break;
           }
         }
 
