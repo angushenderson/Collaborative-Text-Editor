@@ -9,7 +9,6 @@ import TextInput from './input/text_input';
 export default function Header ({documentTitle='Untitled', sidebarOpen=false, toggleSidebar=null, documentCollaborators=null, setDocumentCollaborators=null, documentId=null, websocket=null}) {
   // User context
   const { user, setUser } = React.useContext(userContext);
-  console.log(user.permission);
 
   // Router
   const history = useHistory();
@@ -50,7 +49,7 @@ export default function Header ({documentTitle='Untitled', sidebarOpen=false, to
     }
   }, [searchBarValue]);
 
-  const addCollaborator = (user_id) => {
+  const addCollaborator = (user_id, username) => {
     baseRequest(user, setUser, history, (accessToken) => {
       websocket.current.send(JSON.stringify({
         'type': 'add_new_collaborator',
@@ -60,6 +59,8 @@ export default function Header ({documentTitle='Untitled', sidebarOpen=false, to
         }
       }));
     });
+
+    setDocumentCollaborators(collaborators => [...collaborators, {'user_id': user_id, 'username': username, 'permission': 3, 'permission_level': 'Viewer'}]);
   }
 
   const changeUserPermission = (userId, newPermission) => {

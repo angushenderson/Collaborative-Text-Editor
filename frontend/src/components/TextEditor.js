@@ -47,7 +47,7 @@ export default function TextEditor(props) {
     const keyBinding = getDefaultKeyBinding(e);
     const selection = editorState.getSelection();
     var newContentBlocks = [];
-
+    console.log("KEY BINDING FUNCTION RUNNING");
     // TODO Implement handling of highlighted text
 
     if (['backspace', 'backspace-word'].includes(keyBinding)) {
@@ -74,7 +74,6 @@ export default function TextEditor(props) {
           }
 
           // TODO Need to fix bug where backspace at anchor of 0 deletes the entire line (delete key style)
-          console.log(editorState.getCurrentContent().getBlocksAsArray()[0].getKey(), selection.getAnchorKey(), anchor, focus);
           if (editorState.getCurrentContent().getBlocksAsArray()[0].getKey() === selection.getAnchorKey() && anchor < 1 && focus < 1) {
             // Backspace pressed on block on first line
             return;
@@ -128,7 +127,6 @@ export default function TextEditor(props) {
       const deletedSections = (selection.getAnchorKey() === selection.getFocusKey() && selection.getFocusOffset() === selection.getAnchorOffset()) ? [] : deleteSelectionRange();
 
       newContentBlocks = newContentBlocks.concat(deletedSections);
-      console.log('SPLIT BLOCK', newContentBlocks);
 
       // if (deletedSections.length > 1) {
       //   // Delete blocks
@@ -147,8 +145,6 @@ export default function TextEditor(props) {
       var newSelection = selection;
       // }
 
-      console.log(newSelection);
-      console.log(newContentState);
       newContentState = Modifier.splitBlock(newContentState, newSelection);
       newContentBlocks.push({
         type: 'split-block',
@@ -233,13 +229,11 @@ export default function TextEditor(props) {
     while (key !== stop && key !== undefined) {
       key = editorState.getCurrentContent().getKeyAfter(key);
       keys.push(key);
-      console.log(keys);
     } if (keys.at(-1) === undefined) {
       keys.pop();
     } if (key !== stop) {
       keys.push(stop);
     }
-    console.log("keys", keys);
 
     return keys;
   }

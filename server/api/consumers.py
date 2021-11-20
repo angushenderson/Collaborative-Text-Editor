@@ -135,7 +135,8 @@ class DocumentConsumer(AsyncWebsocketConsumer):
     # TODO Implement event methods for all update types
     async def update_document_content(self, event):
         """Event handler for update_document_content messages"""
-        await self._event_send(event)
+        if event['sender_channel_name'] != self.channel_name:
+            await self._event_send(event)
 
     async def update_document_title(self, event):
         """Event handler for update_document_title messages"""

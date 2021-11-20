@@ -11,7 +11,7 @@ import useInterval from '../utils/useInterval';
 import isNull from '../utils/isNull';
 import Button from '../components/input/button';
 
-export default function EditorPage(props) {
+export default function EditorPage() {
   const webSocket = useRef(null);
 
   // Prevent requests being send unless the below time has passed since the last request (websocket)
@@ -36,6 +36,8 @@ export default function EditorPage(props) {
 
   // State for managing document editor
   const [documentEditorState, setDocumentEditorState] = useState(null);
+  const documentEditorStateRef = useRef();
+  documentEditorStateRef.current = documentEditorState;
 
   const [sidebarContentMargin, setSidebarContentMargin] = useState(250);
   
@@ -192,12 +194,6 @@ export default function EditorPage(props) {
     setTitleEditorState(() => EditorState.createEmpty());
     const state = EditorState.createEmpty();
     setDocumentEditorState(state);
-    console.log({
-      type: 'insert',
-      block: state.getCurrentContent().getBlocksAsArray()[0].getKey(),
-      position: 0,
-      text: '',
-    });
     setUpdatedContentStack([{
       type: 'insert',
       block: state.getCurrentContent().getBlocksAsArray()[0].getKey(),
@@ -231,13 +227,32 @@ export default function EditorPage(props) {
 
   const handleWebSocketMessage = (message) => {
     const data = JSON.parse(message.data);
-    console.log(data);
+
     switch (data.type) {
       case 'add_new_collaborators':
         setDocumentCollaborators(collaborators => [...collaborators, data.body]);
         break;
 
       case 'update_document_content':
+        var newEditorState = documentEditorStateRef.current;
+        for (var i=0; i < data.body.data.length; i++) {
+          const update = data.body.data[i];
+          
+          switch (update.type) {
+            case 'insert':
+              const new_selection = new SelectionState({
+                anchorKey: update.block,
+                focusKey: update.block,
+                anchorOffset: update.position,
+                focusOffset: update.position,
+              });
+
+              const newContentState = Modifier.insertText(newEditorState.getCurrentContent(), new_selection, update.text, null);
+              newEditorState = EditorState.push(newEditorState, newContentState, 'insert-characters');
+          }
+        }
+
+        setDocumentEditorState(newEditorState);
         break;
 
       case 'update_document_title':

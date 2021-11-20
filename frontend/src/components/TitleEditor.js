@@ -86,8 +86,6 @@ export default function TitleEditor (props) {
     }
   }
 
-  console.log(user.permission);
-
   return <div className={className}>
     <Editor
       editorState={editorState}
