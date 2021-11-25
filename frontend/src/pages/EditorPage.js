@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext, useRef } from 'react';
-import { ContentState, EditorState, convertFromRaw, Modifier, SelectionState } from 'draft-js';
+import { ContentState, ContentBlock, EditorState, convertFromRaw, Modifier, SelectionState } from 'draft-js';
 import { useHistory, useLocation  } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
@@ -268,6 +268,46 @@ export default function EditorPage() {
 
               var newContentState = Modifier.removeRange(newEditorState.getCurrentContent(), new_selection, 'backward');
               newEditorState = EditorState.push(newEditorState, newContentState, 'remove-range');
+              break;
+
+            case 'split-block':
+              // TODO: Need to create and insert a block with the key provided
+              const contentState = newEditorState.getCurrentContent();
+              const selection = newEditorState.getSelection();
+              
+              const blockMap = contentState.getBlockMap();
+
+              // Split the blocks
+              const blocksBefore = blockMap.toSeq().takeUntil(function (v) {
+                  return v.getKey() === update.block;
+              });
+              const blocksAfter = blockMap.toSeq().skipUntil(function (v) {
+                  return v.getKey() === update.block;
+              }).rest();
+              // contentState.getKeyAfter(
+
+              let newBlocks = [
+                [
+                  update.block, contentState.getBlockForKey(update.block),
+                ],
+                [
+                  update.newBlock,
+                  new ContentBlock({
+                    key: update.newBlock,
+                    type: 'unstyled',
+                    text: '',
+                    // characterList: List(),
+                  }),
+                ],
+              ];
+              const newBlockMap = blocksBefore.concat(newBlocks, blocksAfter).toOrderedMap();
+              var  newContentState = contentState.merge({
+                blockMap: newBlockMap,
+                selectionBefore: selection,
+                selectionAfter: selection,
+              });
+
+              newEditorState = EditorState.push(newEditorState, newContentState, 'insert-fragment');
               break;
           }
         }
