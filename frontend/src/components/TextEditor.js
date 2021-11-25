@@ -146,11 +146,13 @@ export default function TextEditor(props) {
       // }
 
       newContentState = Modifier.splitBlock(newContentState, newSelection);
+      var newBlockKey = newContentState.getKeyAfter(editorState.getSelection().getAnchorKey());
       newContentBlocks.push({
         type: 'split-block',
         block: editorState.getSelection().getAnchorKey(),
-        newBlock: newContentState.getKeyAfter(editorState.getSelection().getAnchorKey()),
+        newBlock: newBlockKey,
         position: editorState.getSelection().getAnchorOffset(),
+        newBlockType: newContentState.getBlockForKey(newBlockKey).getType(),
       });
       setEditorState(EditorState.push(editorState, newContentState, 'split-block'));
 

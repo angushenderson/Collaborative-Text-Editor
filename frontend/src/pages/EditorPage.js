@@ -294,14 +294,14 @@ export default function EditorPage() {
                   update.newBlock,
                   new ContentBlock({
                     key: update.newBlock,
-                    type: 'unstyled',
+                    type: update.newBlockType,
                     text: '',
                     // characterList: List(),
                   }),
                 ],
               ];
               const newBlockMap = blocksBefore.concat(newBlocks, blocksAfter).toOrderedMap();
-              var  newContentState = contentState.merge({
+              var newContentState = contentState.merge({
                 blockMap: newBlockMap,
                 selectionBefore: selection,
                 selectionAfter: selection,
@@ -309,6 +309,20 @@ export default function EditorPage() {
 
               newEditorState = EditorState.push(newEditorState, newContentState, 'insert-fragment');
               break;
+
+            case 'set-block-type':
+              var newContentState = Modifier.setBlockType(
+                newEditorState.getCurrentContent(),
+                new SelectionState({
+                  anchorKey: update.block,
+                  focusKey: update.block,
+                  anchorOffset: 0,
+                  focusOffset: 0,
+                  isBackward: false,
+                }),
+                update.newBlockType,
+              );
+              newEditorState = EditorState.push(newEditorState, newContentState, 'change-block-type');
           }
         }
 
