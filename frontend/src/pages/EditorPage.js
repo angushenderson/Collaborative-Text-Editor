@@ -255,14 +255,18 @@ export default function EditorPage() {
               if (update.position === -1) {
                 // Delete entire block
                 var root_key = newEditorState.getCurrentContent().getBlockBefore(update.block).getKey();
+                var focusOffset = 0;
+                var anchorOffset = newEditorState.getCurrentContent().getBlockForKey(root_key).getLength();
               } else {
                 var root_key = update.block;
+                var focusOffset = update.position + update.offset;
+                var anchorOffset = update.position;
               }
               var new_selection = new SelectionState({
                 anchorKey: root_key,
                 focusKey: update.block,
-                anchorOffset: update.position,
-                focusOffset: update.position + update.offset,
+                anchorOffset: anchorOffset,
+                focusOffset: focusOffset,
                 isBackward: false,
               });
 
